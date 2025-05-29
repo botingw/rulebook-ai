@@ -6,34 +6,50 @@ This plan is designed to be easily modified and extended. Additional context for
 
 ## Phase 1: Setup and Basic Implementation (Estimate: 1-2 days)
 
-- [ ] Task 1.1: Set up VS Code Extension Development Environment
-    - [ ] Subtask 1.1.1: Install Node.js and npm
-    - [ ] Subtask 1.1.2: Install the VS Code Extension Generator (`yo code`)
-    - [ ] Subtask 1.1.3: Generate a new TypeScript or JavaScript extension project using `yo code`
-    - [ ] Subtask 1.1.4: Familiarize with the extension project structure (`package.json`, `extension.ts`)
+- Task 1.1: Set up VS Code Extension Development Environment
+    - State: In progress
+    - Description: Install necessary tools and generate the basic extension project structure.
+    - Subtasks:
+        - [x] Install Node.js and npm
+        - [x] Install the VS Code Extension Generator (`yo code`)
+        - [ ] Generate a new TypeScript or JavaScript extension project using `yo code`
+        - [ ] Familiarize with the extension project structure (`package.json`, `extension.ts`)
+    - Context: See ./task_1_1/ for detailed steps and notes.
 
-- [ ] Task 1.2: Integrate `manage_rules.py`
-    - [ ] Subtask 1.2.1: Determine the best way to execute the Python script from Node.js/TypeScript (e.g., `child_process.exec`, `spawn`)
-    - [ ] Subtask 1.2.2: Ensure the Python script is accessible to the extension (e.g., plan for bundling or user-specified path)
+- Task 1.2: Integrate `manage_rules.py`
+    - State: Completed
+    - Description: Determine how to execute the Python script from the extension and ensure its accessibility.
+    - Subtasks:
+        - [ ] Determine the best way to execute the Python script from Node.js/TypeScript (e.g., `child_process.exec`, `spawn`)
+        - [ ] Ensure the Python script is accessible to the extension (e.g., plan for bundling or user-specified path)
+    - Context: See ./task_1_2/ for detailed steps and notes.
 
-- [ ] Task 1.3: Implement a Basic Command
-    - [ ] Subtask 1.3.1: Define a simple command in `package.json` (e.g., `aiRuleManager.listRuleSets`)
-    - [ ] Subtask 1.3.2: Register the command in `extension.ts`
-    - [ ] Subtask 1.3.3: In the command handler, execute `manage_rules.py` with a basic argument (e.g., `list-rules`)
-    - [ ] Subtask 1.3.4: Display the output in a VS Code output channel
+- Task 1.3: Implement a Basic Command # This is a new line for task 1.3
+    - State: In progress
+    - Description: Create and register a simple command in VS Code to execute `manage_rules.py` and display its output.
+    - Subtasks:
+        - [x] Define a simple command in `package.json` (e.g., `aiRuleManager.listRuleSets`)
+        - [ ] Register the command in `extension.ts`
+        - [ ] In the command handler, execute `manage_rules.py` with a basic argument (e.g., `list-rules`)
+        - [ ] Display the output in a VS Code output channel
 
 ## Phase 2: GUI and Core Command Implementation (POC Focus) (Estimate: 2-3 weeks)
+    - State: In progress
 
-- [ ] Task 2.1: Identify Key `manage_rules.py` Functionality for POC
-    - [ ] Subtask 2.1.1: Review `manage_rules.py` to understand core commands (`install`, `sync`, `clean-rules`, `clean-all`, `list-rules`)
+- [ ] Task 2.1: Identify Key `manage_rules.py` Functionality
+- Task 2.1: Identify Key `manage_rules.py` Functionality for POC
+    - State: To do
+    - Description: Review the `manage_rules.py` script to understand its core commands and arguments to be exposed in the extension.
+    - Subtasks:
+        - [ ] Subtask 2.1.1: Review the `manage_rules.py` script to understand its core commands and arguments: `install`, `sync`, `clean-rules`, `clean-all`, `list-rules`.
 
 - [ ] Task 2.2: Create Dedicated View Container (Sidebar) and Define Commands
+    - State: To do
     - [ ] Subtask 2.2.1: Define and register a new View Container and View in `package.json`
     - [ ] Subtask 2.2.2: For each core function, define a corresponding VS Code command in `package.json`
-
 - [ ] Task 2.3: Implement Command Handlers
+    - State: In progress
     - [ ] Subtask 2.3.1: Register handlers for each command in `extension.ts`
-    - [ ] Subtask 2.3.2: Within handlers, execute `manage_rules.py` with appropriate arguments
     - [ ] Subtask 2.3.3: Use VS Code APIs for user interaction (notifications, input boxes)
 
 - [ ] Task 2.4: Build GUI in View Container (Webview)
