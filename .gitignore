@@ -98,6 +98,7 @@ dmypy.json
 .windsurfrules
 .windsurf/
 .github/
+.idx/
 project_rules/
 tools/
 
