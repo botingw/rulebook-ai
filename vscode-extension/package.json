@@ -1,0 +1,10 @@
+{
+    "contributes": {
+        "commands": [
+            {
+                "command": "aiRuleManager.listRuleSets",
+                "title": "AI Rule Manager: List Available Rule Sets"
+            }
+        ]
+    }
+}
