@@ -28,6 +28,6 @@ button {
     overflow-y: auto;
 }
 
-#status-message {
+#status-message { }
+
     font-weight: bold;
-}
