@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import * as path from "path";
 import * as fs from 'fs'; // Import the 'fs' module
+import { AIsplendidRuleManagerViewProvider } from './AIsplendidRuleManagerViewProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -10,40 +11,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     let disposable = vscode.commands.registerCommand('aiRuleManager.openGUI', () => {
         const panel = vscode.window.createWebviewPanel(
-            'aiRuleManagerGUI', // Identifies the type of the webview. Used internally
-            'AI Rule Manager GUI', // Title of the panel displayed to the user
-            vscode.ViewColumn.One, // Editor column to show the new panel in.
-            {
-                enableScripts: true, // Enable scripts in the webview
-                localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media'))] // Restrict the webview to only load resources from the media directory
- localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'media')), vscode.Uri.file(path.join(context.extensionPath, 'out'))] // Allow loading resources from media and out directories
-            }
+            vscode.commands.executeCommand('workbench.view.focus', 'aiRuleManager') // Reveal the sidebar view
         );
-
-        // Get path to HTML file and load its content
-        const htmlPath = vscode.Uri.file(
-            path.join(context.extensionPath, 'media', 'index.html')
-        );
-        const htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
-        panel.webview.html = htmlContent;
-
-        // Handle messages from the webview
-        panel.webview.onDidReceiveMessage(
-            message => {
-                switch (message.command) {
-                    case 'runCommand':
-                        runManageRulesCommand(message.text, panel.webview, context); // Call a function to run the command
-                        return;
-                }
-            },
-            undefined,
-            context.subscriptions
-        );
-
-        // Load rule sets when the GUI opens
-        runManageRulesCommand('list-rules', panel.webview, context);
     });
-
     context.subscriptions.push(disposable);
 }
 
@@ -103,6 +73,9 @@ function runManageRulesCommand(command: string, webview: vscode.Webview, context
              webview.postMessage({ command: 'status', text: `Failed to start ${command}: ${err.message}` });
         });
     }
+
+    // Register the Webview View Provider for the sidebar
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider('aiRuleManagerGUI', new AIsplendidRuleManagerViewProvider(context)));
 }
 
 
