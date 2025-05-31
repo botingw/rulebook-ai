@@ -10,14 +10,35 @@
     "Other"
   ],
   "activationEvents": ["onCommand:aiRuleManager.listRuleSets"],
+  "activationEvents": [
+    "onCommand:aiRuleManager.listRuleSets",
+    "onCommand:aiRuleManager.openGUI"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "aiRuleManager.listRuleSets",
         "title": "AI Rule Manager: List Available Rule Sets"
+      },
+      {
+        "command": "aiRuleManager.openGUI",
+        "title": "AI Rule Manager: Open GUI"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "aiRuleManager",
+        "title": "AI Rule Manager",
+        "icon": "$(gear)"
+      }]
+    },
+    "views": {
+      "aiRuleManager": [{
+        "id": "aiRuleManagerGUI",
+        "name": "Manage Rules GUI"
+      }]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
