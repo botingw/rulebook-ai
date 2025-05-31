@@ -9,21 +9,13 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
-  "main": "./out/extension_backup2.js",
+  "activationEvents": ["onCommand:aiRuleManager.listRuleSets"],
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "hello-world-ext.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "aiRuleManager.listRuleSets",
         "title": "AI Rule Manager: List Available Rule Sets"
-      },
-      {
-        "command": "hello-world-ext.helloWorld-testcommand",
-        "title": "Hello World test"
       }
     ]
   },
