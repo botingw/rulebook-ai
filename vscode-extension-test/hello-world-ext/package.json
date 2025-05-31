@@ -1,0 +1,49 @@
+{
+  "name": "hello-world-ext",
+  "displayName": "hello-world-ext",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension_backup2.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "hello-world-ext.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "aiRuleManager.listRuleSets",
+        "title": "AI Rule Manager: List Available Rule Sets"
+      },
+      {
+        "command": "hello-world-ext.helloWorld-testcommand",
+        "title": "Hello World test"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.100.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

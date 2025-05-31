@@ -102,3 +102,36 @@ dmypy.json
 project_rules/
 tools/
 
+# vscode extension
+### VS Code extension package
+*.vsix
+
+### Node & TypeScript ###
+node_modules/
+out/                 
+# or dist/
+*.vsix
+npm-debug.log*
+*.log
+
+### VS Code test harness ###
+.vscode-test*/       
+# downloaded by @vscode/test-electron
+
+### OS junk ###
+.DS_Store
+Thumbs.db
+
+### Coverage ###
+coverage/
+
+### Environment secrets ###
+.env
+.env.*
+
+
+### Optional: ignore personal workspace settings ###
+# .vscode/      <- uncomment if you don't want per-user settings in repo
+!.vscode/extensions.json    # but keep recommended extensions list
+
+
