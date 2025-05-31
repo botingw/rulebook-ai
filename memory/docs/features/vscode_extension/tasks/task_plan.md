@@ -4,6 +4,30 @@ This document outlines a task plan for developing the VS Code extension based on
 
 This plan is designed to be easily modified and extended. Additional context for specific tasks or subtasks can be added in separate Markdown files within subdirectories to keep this main plan concise.
 
+## Phase 0: POC for Publishing Process (Estimate: 1 day)
+ - State: In progress
+ - Description: Walk through the end-to-end process of publishing a minimal VS Code extension to understand the steps involved. This is a Proof of Concept (POC) to identify potential roadblocks and refine the publishing process before completing the full extension.
+ - Task 0.1: Walk through the end-to-end process of publishing
+ - Subtasks:
+ - [x] Subtask 0.1.1: Install Node.js and npm (if not already installed)
+ - [x] Subtask 0.1.2: Install the VS Code Extension Generator (`yo code`) (if not already installed)
+ - [x] Subtask 0.1.3: Install the VS Code publishing tool (`vsce`)
+ - [x] Subtask 0.1.4: Create a publisher on the VS Code Marketplace
+ - [x] Subtask 0.1.5: Generate a new minimal TypeScript or JavaScript extension project using `yo code` (e.g., the "Hello World" example)
+ - [x] Subtask 0.1.6: Make a small modification to the generated extension code (e.g., change the "Hello World" message)
+ - [x] Subtask 0.1.7: Package the extension using `vsce package`
+ - [ ] Subtask 0.1.8: Publish the extension to the VS Code Marketplace using `vsce publish` (consider publishing as a private extension or to a test marketplace if available)
+ - [ ] Subtask 0.1.9: Install the published extension in a separate VS Code instance to verify
+ - [ ] Subtask 0.1.10: If published publicly, understand the process for unpublishing or updating
+ - [ ] Subtask 0.1.11: Document the steps taken and any issues encountered
+ - [ ] Subtask 0.1.12: Identify any steps that might be different or more complex for our specific `manage_rules.py` wrapper extension
+ - [ ] Subtask 0.1.13: Refine the publishing subtasks in Phase 5 based on this POC
+ - Context: This phase is a critical early step to de-risk the publishing process. See "VS Code Extension — End-to-End Developer Checklist" for a reference.
+
+## Phase 1: Setup and Basic Implementation (Estimate: 1-2 days)
+ - State: In progress
+ - Description: Install necessary tools and generate the basic extension project structure.
+
 ## Phase 1: Setup and Basic Implementation (Estimate: 1-2 days)
 
 - Task 1.1: Set up VS Code Extension Development Environment

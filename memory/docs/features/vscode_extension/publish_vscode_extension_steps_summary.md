@@ -1,6 +1,8 @@
 # VS Code Extension — End-to-End Developer Checklist
 
+*Note: These steps were verified through a proof-of-concept to de-risk the publishing process.*
 *A concise recipe from first-time setup to Marketplace release.*
+
 
 ---
 
