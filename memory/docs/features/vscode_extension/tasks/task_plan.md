@@ -25,10 +25,6 @@ This plan is designed to be easily modified and extended. Additional context for
  - Context: This phase is a critical early step to de-risk the publishing process. See "VS Code Extension — End-to-End Developer Checklist" for a reference.
 
 ## Phase 1: Setup and Basic Implementation (Estimate: 1-2 days)
- - State: In progress
- - Description: Install necessary tools and generate the basic extension project structure.
-
-## Phase 1: Setup and Basic Implementation (Estimate: 1-2 days)
 
 - Task 1.1: Set up VS Code Extension Development Environment
     - State: In progress
@@ -53,15 +49,14 @@ This plan is designed to be easily modified and extended. Additional context for
     - Description: Create and register a simple command in VS Code to execute `manage_rules.py` and display its output.
     - Subtasks:
         - [x] Define a simple command in `package.json` (e.g., `aiRuleManager.listRuleSets`)
-        - [ ] Register the command in `extension.ts`
-        - [ ] In the command handler, execute `manage_rules.py` with a basic argument (e.g., `list-rules`)
+        - [x] Register the command in `extension.ts`
+        - [x] In the command handler, execute `manage_rules.py` with a basic argument (e.g., `list-rules`)
         - [ ] Display the output in a VS Code output channel
 
 ## Phase 2: GUI and Core Command Implementation (POC Focus) (Estimate: 2-3 weeks)
     - State: In progress
 
-- [ ] Task 2.1: Identify Key `manage_rules.py` Functionality
-- Task 2.1: Identify Key `manage_rules.py` Functionality for POC
+- Task 2.1: Identify Key `manage_rules.py` Functionality for GUI Exposure
     - State: To do
     - Description: Review the `manage_rules.py` script to understand its core commands and arguments to be exposed in the extension.
     - Subtasks:
@@ -70,11 +65,13 @@ This plan is designed to be easily modified and extended. Additional context for
 - [ ] Task 2.2: Create Dedicated View Container (Sidebar) and Define Commands
     - State: To do
     - [ ] Subtask 2.2.1: Define and register a new View Container and View in `package.json`
-    - [ ] Subtask 2.2.2: For each core function, define a corresponding VS Code command in `package.json`
+    - [ ] Subtask 2.2.2: Define *only* the main GUI entry point command in `package.json`. Other GUI-triggered actions will not have corresponding Command Palette entries.
+
 - [ ] Task 2.3: Implement Command Handlers
     - State: In progress
     - [ ] Subtask 2.3.1: Register handlers for each command in `extension.ts`
-    - [ ] Subtask 2.3.3: Use VS Code APIs for user interaction (notifications, input boxes)
+    - [ ] Subtask 2.3.2: Execute `manage_rules.py` with appropriate arguments based on GUI interactions.
+    - [ ] Subtask 2.3.3: Use VS Code APIs for user interaction (notifications, error messages) *excluding* interactive input with the Python script.
 
 - [ ] Task 2.4: Build GUI in View Container (Webview)
     - [ ] Subtask 2.4.1: Implement HTML, CSS, and JavaScript for the Webview UI
@@ -85,7 +82,8 @@ This plan is designed to be easily modified and extended. Additional context for
 
 - [ ] Task 2.5: Handle Script Output and Errors
     - [ ] Subtask 2.5.1: Parse script output for structured feedback
-    - [ ] Subtask 2.5.2: Implement robust error handling and reporting using VS Code APIs
+    - [ ] Subtask 2.5.2: Implement robust error handling and reporting using VS Code APIs.
+    - [ ] Subtask 2.5.3: For commands requiring user input in the terminal (e.g., `clean-all`, `install` overwrite), display a clear message in the GUI instructing the user to switch to the integrated terminal.
 
 ## Phase 3: Advanced Features and User Experience (Estimate: 1 week)
 
@@ -112,14 +110,12 @@ This plan is designed to be easily modified and extended. Additional context for
     - [ ] Subtask 4.2.2: Verify script execution and output processing
     - [ ] Subtask 4.2.3: Consider using VS Code's Test Runner
 
-- [ ] Task 4.3: Test GUI and User Flow
+- [ ] Task 4.3: Test GUI, User Flow, and Manual Testing
     - [ ] Subtask 4.3.1: Test button functionality and command triggering
     - [ ] Subtask 4.3.2: Test input fields/dropdowns
     - [ ] Subtask 4.3.3: Verify output display
-
-- [ ] Task 4.4: Manual Testing
-    - [ ] Subtask 4.4.1: Manually test all commands and features in VS Code
-    - [ ] Subtask 4.4.2: Test on different operating systems
+    - [ ] Subtask 4.3.4: Manually test all commands and features in VS Code.
+    - [ ] Subtask 4.3.5: Test on different operating systems.
 
 - [ ] Task 4.5: Refine GUI and User Flow
     - [ ] Subtask 4.5.1: Based on testing feedback, refine GUI layout and interaction
