@@ -9,35 +9,70 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": ["onCommand:aiRuleManager.listRuleSets"],
   "activationEvents": [
-    "onCommand:aiRuleManager.listRuleSets",
-    "onCommand:aiRuleManager.openGUI"
+    "onView:manageRulesView"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "aiRuleManager.listRuleSets",
-        "title": "AI Rule Manager: List Available Rule Sets"
+        "command": "manageRules.installRuleSet",
+        "title": "Install Rule Set",
+        "category": "Manage Rules"
       },
       {
-        "command": "aiRuleManager.openGUI",
-        "title": "AI Rule Manager: Open GUI"
+        "command": "manageRules.syncRuleSet",
+        "title": "Sync Rule Set",
+        "category": "Manage Rules"
+      },
+      {
+        "command": "manageRules.cleanRules",
+        "title": "Clean Rules",
+        "category": "Manage Rules"
+      },
+      {
+        "command": "manageRules.cleanAll",
+        "title": "Clean All",
+        "category": "Manage Rules"
+      },
+      {
+        "command": "manageRules.listRules",
+        "title": "List Available Rule Sets",
+        "category": "Manage Rules"
+      },
+      {
+        "command": "manageRules.runCustomCli",
+        "title": "Run Custom CLI...",
+        "category": "Manage Rules"
       }
     ],
     "viewsContainers": {
-      "activitybar": [{
-        "id": "aiRuleManager",
-        "title": "AI Rule Manager",
-        "icon": "$(gear)"
-      }]
+      "activitybar": [
+        {
+          "id": "manage-rules-activitybar",
+          "title": "Manage Rules",
+          "icon": "icon.png" // Optional: path to your activity bar icon
+        }
+      ]
     },
     "views": {
-      "aiRuleManager": [{
-        "id": "aiRuleManagerGUI",
-        "name": "Manage Rules GUI"
-      }]
+      "manage-rules-activitybar": [
+        {
+          "id": "manageRulesView",
+          "name": "Manage Rules",
+          "type": "tree"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Manage Rules",
+      "properties": {
+        "manageRules.pythonPath": {
+          "type": "string",
+          "default": "python3",
+          "description": "Path to the Python executable (e.g., python, python3, /usr/bin/python3). Used to run manage_rules.py."
+        }
+      }
     }
   },
   "scripts": {
