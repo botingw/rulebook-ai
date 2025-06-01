@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { SidebarProvider } from './sidebarProvider';
-import { getRuleSets, confirmModal, openTerminalAndRun } from './utils';
+import { getRuleSets, confirmModal, openTerminalAndRun } from './util';
 
 const PYTHON_SCRIPT_NAME = 'manage_rules.py'; // As per spec, expected in workspace root
 

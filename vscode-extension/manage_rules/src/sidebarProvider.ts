@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 
 export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+    // debug
+    constructor() {
+    console.log('SidebarProvider constructed');
+    }
+
     private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | null | void> = new vscode.EventEmitter<vscode.TreeItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
@@ -9,6 +14,8 @@ export class SidebarProvider implements vscode.TreeDataProvider<vscode.TreeItem>
     }
 
     getChildren(element?: vscode.TreeItem): Thenable<vscode.TreeItem[]> {
+        // debug
+        console.log('getChildren called');
         if (element) {
             // This is a flat list, so children of items are not expected.
             return Promise.resolve([]);
@@ -35,7 +42,7 @@ class ActionItem extends vscode.TreeItem {
         public readonly label: string,
         commandId: string,
         tooltip?: string,
-        icon?: string | vscode.Uri | { light: string | vscode.Uri; dark: string | vscode.Uri } | vscode.ThemeIcon
+        icon?: string | vscode.Uri | { light: vscode.Uri; dark: vscode.Uri } | vscode.ThemeIcon
     ) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.tooltip = tooltip || label;
