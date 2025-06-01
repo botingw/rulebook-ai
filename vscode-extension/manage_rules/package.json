@@ -1,8 +1,14 @@
 {
-  "name": "hello-world-ext",
-  "displayName": "hello-world-ext",
+  "name": "rule-manager",
+  "displayName": "rule-manager",
   "description": "",
-  "version": "0.0.8",
+  "publisher": "BotingWang",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/botingw/rulebook-ai.git"
+  },
+  "license": "Apache-2.0",
+  "version": "0.0.1",
   "engines": {
     "vscode": "^1.100.0"
   },
