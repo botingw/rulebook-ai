@@ -57,7 +57,7 @@
         {
           "id": "manage-rules-activitybar",
           "title": "Manage Rules",
-          "icon": "icon.png" 
+          "icon": "my_prod_icon.svg" 
         }
       ]
     },
