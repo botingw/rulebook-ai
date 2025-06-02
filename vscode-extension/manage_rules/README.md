@@ -41,6 +41,36 @@ Bring **consistent, context-rich AI assistance** to every repo you touch—acros
 |:-:|:-:|
 | ![Sidebar](media/sidebar.png) | ![Install GIF](media/install.gif) |
 
+### 📸 Installation Flow
+
+Follow these four simple steps to see how **Manage Rules** installs a rule set into your workspace:
+
+1. **Open the “Manage Rules” Sidebar**  
+   Click the “Manage Rules” icon in the VS Code Activity Bar to reveal all available commands.  
+   ![Click the Manage Rules icon](instruction/step1.png)  
+   *Click the puzzle-piece icon at the bottom left (or wherever you pinned it) to expand the Manage Rules menu.*
+
+2. **Select “Install Rule Set” & Choose Your Rule Set**  
+   From the sidebar commands, click **Install Rule Set**, then pick a rule set (e.g. `heavy-spec`).  
+   ![Select a rule set to install](instruction/step2.png)  
+   *Type or scroll to the rule set you want, then press Enter.*
+
+3. **Confirm Installation**  
+   VS Code will pop up a confirmation dialog. Click **Yes** to begin.  
+   ![Confirm installation of “heavy-spec”](instruction/step3.png)  
+   *Once you click Yes, the extension will run the bundled Python script in the integrated terminal.*
+
+4. **Verify Generated Folders in Your Workspace**  
+   After the script finishes, you’ll see new folders (e.g. `.cursor/`, `.clinerules/`, `.windsurf/`, etc.) plus `project_rules/` appear at your workspace root.  
+   ![Check that rule folders and project_rules/ are created](instruction/step4.png)  
+   *These folders contain the platform-specific rule files and memory definitions you selected.*
+
+---
+
+👏 That’s it! Your chosen rule set is now installed. To update later, simply click **Sync Rule Set** from the same sidebar. If you want to start fresh, use **Clean Rules** or **Clean All**.
+
+
+
 ---
 
 ## 🔍 Commands & Settings
@@ -84,7 +114,7 @@ The extension is a **thin Node.js wrapper** that triggers the backend `manage_ru
 
 ## 🤝 Need help or have ideas?
 
-- Open an **Issue** in the repo  
+- Open an [**Issue**](https://github.com/botingw/rulebook-ai/issues) in the repo  
 - Drop anonymous feedback via our [Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeW57QtPEWIRhHY1iOb8f5KQZTGLSeeb_PN2iZLd0Aw_pVYxw/viewform)  
 - Chat with us in the GitHub **Discussions** tab  
 
