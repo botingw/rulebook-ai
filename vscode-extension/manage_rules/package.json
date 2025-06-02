@@ -1,7 +1,7 @@
 {
-  "name": "rule-manager",
-  "displayName": "rule-manager",
-  "description": "",
+  "name": "ai-coding-ide-rule-manager",
+  "displayName": "Manage AI coding Rules",
+  "description": "One-click installer + syncer for AI-coding rule sets (Cursor, Copilot, CLINE, Windsurf, Roo)… all from VS Code.",
   "publisher": "BotingWang",
   "repository": {
     "type": "git",
