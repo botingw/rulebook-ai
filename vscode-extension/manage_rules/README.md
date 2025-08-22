@@ -5,7 +5,7 @@
 
 # 🧩 Manage Rules – Universal **AI Coding Rules** Manager for VS Code
 
-Bring **consistent, context-rich AI assistance** to every repo you touch—across Cursor, GitHub Copilot, CLINE, RooCode & Windsurf—without leaving VS Code.
+Bring **consistent, context-rich AI assistance** to every repo you touch—across Cursor, GitHub Copilot, CLINE, RooCode & Windsurf —without leaving VS Code with powerful AI memory bank prompts.
 
 ---
 

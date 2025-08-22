@@ -8,7 +8,7 @@
     "url": "https://github.com/botingw/rulebook-ai.git"
   },
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -57,7 +57,7 @@
         {
           "id": "manage-rules-activitybar",
           "title": "Manage Rules",
-          "icon": "my_prod_icon.svg" 
+          "icon": "my_prod_icon.svg"
         }
       ]
     },
