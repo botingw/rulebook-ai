@@ -18,10 +18,9 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
+    rev: v1.10.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-all]
         exclude: ^tests/
 
   - repo: https://github.com/python-poetry/poetry
@@ -41,7 +40,21 @@ repos:
       - id: refurb
         language_version: python3
 
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.2
+  # use pip-audit instead of safety for now (it only handles pyproject.toml with Poetry)
+  # - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
+  #   rev: v1.3.2
+  #   hooks:
+  #     - id: python-safety-dependencies-check
+  #       name: safety (root pyproject)
+  #       pass_filenames: false
+  #       files: ^pyproject\.toml$
+  #       args: ["pyproject.toml"]
+
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.9.0
     hooks:
-      - id: python-safety-dependencies-check
+      - id: pip-audit
+        name: pip-audit (pyproject)
+        pass_filenames: false      # we audit the project, not specific files
+        args: ["."]
+        language_version: python3.12 # macOS, the Python 3.13 breaks pip-audit
