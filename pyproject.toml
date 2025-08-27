@@ -46,17 +46,14 @@ rulebook-ai = "rulebook_ai.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["rulebook_ai*"]
-
-[tool.setuptools]
-package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
 "rulebook_ai" = [
-    "rule_sets/**/*",
+    "env.example",
+    "requirements.txt",
     "memory_starters/**/*",
-    "tool_starters/**/*",
-    "memory/**/*"
+    "rule_sets/**/*",
+    "tool_starters/**/*"
 ]
 
 [tool.setuptools.exclude-package-data]

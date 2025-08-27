@@ -311,12 +311,14 @@ class RuleManager:
         # Source directory for the specific rule set
         rule_set_source_dir = self.source_rules_dir / rule_set
         
-        # Clean first if requested
-        if clean_first:
-            if target_rules_dir.exists():
-                shutil.rmtree(target_rules_dir)
-            if include_copilot and (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).exists():
-                (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).unlink()
+        # Per spec, rule set installation is always destructive for the rules directory.
+        if target_rules_dir.exists():
+            print(f"Warning: Existing rule directory '{target_rules_dir}' will be replaced.")
+            shutil.rmtree(target_rules_dir)
+
+        # The `clean_first` flag from the CLI can be used to also clean the copilot file.
+        if clean_first and include_copilot and (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).exists():
+            (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).unlink()
                 
         # Verify the rule set exists
         if not rule_set_source_dir.is_dir():
@@ -327,35 +329,61 @@ class RuleManager:
             return 1
             
         # Create target directories
-        target_rules_dir.mkdir(parents=True, exist_ok=True)
         target_memory_dir.mkdir(parents=True, exist_ok=True)
         target_tools_dir.mkdir(parents=True, exist_ok=True)
         
-        # Copy rule files preserving directory structure
+        # Copy rule files
         print(f"Installing rule set '{rule_set}'...")
-        rules_count = self.copy_tree_non_destructive(rule_set_source_dir, target_rules_dir)
-        print(f"Copied {rules_count} new rule files.")
+        try:
+            shutil.copytree(rule_set_source_dir, target_rules_dir)
+            print(f"Successfully copied rule set to '{target_rules_dir}'.")
+        except Exception as e:
+            print(f"Error copying rule set: {e}")
+            return 1
         
-        # Copy memory starters non-destructively
-        memory_count = self.copy_tree_non_destructive(
-            self.source_memory_dir, 
-            target_memory_dir
-        )
-        print(f"Copied {memory_count} new memory starter files.")
+        # Copy memory starters non-destructively (ruleset-specific first, then global fallback)
+        ruleset_memory_dir = rule_set_source_dir / "memory_starters"
+        if ruleset_memory_dir.exists():
+            memory_count = self.copy_tree_non_destructive(
+                ruleset_memory_dir, 
+                target_memory_dir
+            )
+            print(f"Copied {memory_count} new ruleset-specific memory starter files.")
+        else:
+            memory_count = self.copy_tree_non_destructive(
+                self.source_memory_dir, 
+                target_memory_dir
+            )
+            print(f"Copied {memory_count} new global memory starter files.")
         
-        # Copy tool starters non-destructively
-        tools_count = self.copy_tree_non_destructive(
-            self.source_tools_dir, 
-            target_tools_dir
-        )
-        print(f"Copied {tools_count} new tool starter files.")
+        # Copy tool starters non-destructively (ruleset-specific first, then global fallback)
+        ruleset_tools_dir = rule_set_source_dir / "tool_starters"
+        if ruleset_tools_dir.exists():
+            tools_count = self.copy_tree_non_destructive(
+                ruleset_tools_dir, 
+                target_tools_dir
+            )
+            print(f"Copied {tools_count} new ruleset-specific tool starter files.")
+        else:
+            tools_count = self.copy_tree_non_destructive(
+                self.source_tools_dir, 
+                target_tools_dir
+            )
+            print(f"Copied {tools_count} new global tool starter files.")
         
-        # Copy .env.example if it exists
-        env_example_path = self.project_root / SOURCE_ENV_EXAMPLE_FILE
-        if env_example_path.exists():
-            target_env_example = target_root / ".env.example"
-            self.copy_file(env_example_path, target_env_example)
-            print(f"Copied .env.example to {target_env_example}")
+        # Copy env.example and requirements.txt non-destructively from the package directory
+        files_to_copy = [SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]
+        for filename in files_to_copy:
+            source_file = self.package_path / filename
+            target_file = target_root / filename
+            if source_file.is_file():
+                if not target_file.exists():
+                    self.copy_file(source_file, target_file)
+                    print(f"Copied '{filename}' to {target_root}")
+                else:
+                    print(f"'{filename}' already exists in target. Skipping.")
+            else:
+                print(f"Warning: Source file for '{filename}' not found in package path '{self.package_path}'. Skipping.")
             
         # Copy GitHub Copilot instructions if requested
         if include_copilot:
@@ -591,22 +619,28 @@ class RuleManager:
             print(f"Removed rules directory: {target_rules_dir}")
             
         # Clean assistant-specific directories
-        assistant_dirs = [
-            (target_root / TARGET_CURSOR_DIR, "Cursor"),
-            (target_root / TARGET_WINDSURF_DIR, "Windsurf"), 
-            (target_root / TARGET_CLINE_DIR, "Cline"),
-            (target_root / TARGET_ROO_DIR, "RooCode")
+        assistant_dirs_to_clean = [
+            target_root / ".cursor",
+            target_root / ".windsurf",
+            target_root / ".clinerules",
+            target_root / ".roo",
         ]
-        
-        for dir_path, name in assistant_dirs:
-            if dir_path.exists():
+        for dir_path in assistant_dirs_to_clean:
+            if dir_path.exists() and dir_path.is_dir():
                 shutil.rmtree(dir_path)
-                print(f"Removed {name} rules directory: {dir_path}")
+                print(f"Removed directory: {dir_path}")
             
         # Clean GitHub Copilot instructions
         if copilot_file.exists():
             copilot_file.unlink()
             print(f"Removed GitHub Copilot instructions: {copilot_file}")
+            # Attempt to remove .github directory if it's empty
+            try:
+                if target_github_dir.is_dir() and not any(target_github_dir.iterdir()):
+                    target_github_dir.rmdir()
+                    print(f"Removed empty directory: {target_github_dir}")
+            except Exception as e:
+                print(f"Info: Could not remove directory '{target_github_dir}' or it wasn't empty: {e}")
             
         print("Rules cleaned successfully.")
         return 0
@@ -632,29 +666,36 @@ class RuleManager:
         target_tools_dir = target_root / TARGET_TOOLS_DIR
         target_github_dir = target_root / TARGET_GITHUB_COPILOT_DIR
         copilot_file = target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE
+        env_example_file = target_root / SOURCE_ENV_EXAMPLE_FILE
+        requirements_file = target_root / SOURCE_REQUIREMENTS_TXT_FILE
         
         # Clean all directories
         cleaned_count = 0
         
-        if target_rules_dir.exists():
-            shutil.rmtree(target_rules_dir)
-            cleaned_count += 1
-            print(f"Removed rules directory: {target_rules_dir}")
-            
-        if target_memory_dir.exists():
-            shutil.rmtree(target_memory_dir)
-            cleaned_count += 1
-            print(f"Removed memory directory: {target_memory_dir}")
-            
-        if target_tools_dir.exists():
-            shutil.rmtree(target_tools_dir)
-            cleaned_count += 1
-            print(f"Removed tools directory: {target_tools_dir}")
-            
-        if copilot_file.exists():
-            copilot_file.unlink()
-            cleaned_count += 1
-            print(f"Removed GitHub Copilot instructions: {copilot_file}")
+        items_to_remove = [
+            target_rules_dir, target_memory_dir, target_tools_dir,
+            target_root / ".cursor",
+            target_root / ".windsurf",
+            target_root / ".clinerules",
+            target_root / ".roo",
+            target_github_dir, # Remove the whole .github dir
+            env_example_file, requirements_file
+        ]
+
+        for item_path in items_to_remove:
+            if not item_path.exists():
+                continue
+            try:
+                if item_path.is_file():
+                    item_path.unlink()
+                    print(f"Removed file: {item_path}")
+                    cleaned_count += 1
+                elif item_path.is_dir():
+                    shutil.rmtree(item_path)
+                    print(f"Removed directory: {item_path}")
+                    cleaned_count += 1
+            except Exception as e:
+                print(f"Error removing '{item_path}': {e}")
             
         if cleaned_count == 0:
             print("No rulebook-ai files found to clean.")
