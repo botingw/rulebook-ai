@@ -35,8 +35,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    needs: lint
-    if: always()
     strategy:
       matrix:
         python-version: ['3.9', '3.10', '3.11']
@@ -63,11 +61,11 @@ jobs:
 
       - name: Run basic functionality test
         run: |
-          rulebook-ai --help
-          rulebook-ai list-rules
+          uv run rulebook-ai --help
+          uv run rulebook-ai list-rules
           mkdir -p test_project
-          rulebook-ai install --rule-set light-spec --project-dir test_project
-          rulebook-ai clean-all --project-dir test_project
+          uv run rulebook-ai install --rule-set light-spec --project-dir test_project
+          yes | uv run rulebook-ai clean-all --project-dir test_project
 
       - name: Run tests with pytest
         run: uv run pytest --cov=rulebook_ai
@@ -99,7 +97,7 @@ jobs:
 
       - name: Build package
         run: |
-          python -m build
+          uv run python -m build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
