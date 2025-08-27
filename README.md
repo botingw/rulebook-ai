@@ -1,9 +1,26 @@
-<!-- Add Badges Here (e.g., License) -->
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-# Universal Rules Template for AI Coding Assistants
+# Rulebook-AI: Universal Rules Template for AI Coding Assistants
 
 * Bugs or ideas → open an **Issue** in the repo  
 * Anonymous feedback: [Go to the Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeW57QtPEWIRhHY1iOb8f5KQZTGLSeeb_PN2iZLd0Aw_pVYxw/viewform?usp=header)
+
+## Quick Start with uv/uvx
+
+```bash
+# Install uv if you don't have it yet
+curl -fsSL https://astral.sh/uv/install.sh | bash
+
+# Install rulebook-ai in an ephemeral environment and run it
+uvx rulebook-ai install --rule-set light-spec
+
+# Or create a persistent environment
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e .
+rulebook-ai doctor  # Check your setup
+```
 
 ## Supercharge Your AI Coding Workflow Across Cursor, CLINE, RooCode, Windsurf, and Github Copilot
 
@@ -112,29 +129,44 @@ This template repository serves as the central source for master rule sets. To u
     *   **Follow Up:**
         *   Add the generated directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`) to your target project's (`~/git/my_cool_project/`) `.gitignore`.
         *   Commit the newly created/updated `memory/`, `tools/`, `env.example`, and `requirements.txt` files/directories within your target project.
-        *   Note: The `project_rules/` directory is managed by this script (it's replaced by `install` and removed by `clean-rules`).
 
-3.  **Customize Rules (In Your Target Project's `project_rules/` - Advanced):**
-    *   If you need to make project-specific modifications to the rule sources *before* they are processed by `sync`, you can modify files directly within the `project_rules/` directory *inside your target project* (`~/git/my_cool_project/project_rules/`).
-    *   **Important:** Be aware that the `clean-rules` command will remove the entire `project_rules/` directory. If you make customizations here, ensure you have a backup or understand they will be lost if you run `clean-rules` and then `install` again. For persistent project-specific AI guidance, focus on customizing the `memory/` and `tools/` directories.
+# Sync (update) rules when rulebook-ai is updated
+uvx rulebook-ai sync --rule-set light-spec --project-dir /path/to/your/project
 
-4.  **Synchronize Customizations (if `project_rules/` was manually changed):**
-    *   If you've manually edited files in your target project's `project_rules/` directory, run the `sync` command to update the Target Platform Rules used by the AI assistants.
-    *   **Command:**
-        ```bash
-        # Syntax: python src/manage_rules.py sync <path_to_your_target_repo>
-        # Example:
-        python src/manage_rules.py sync ~/git/my_cool_project
-        ```
-    *   **Action:**
-        *   Reads the current rules from `~/git/my_cool_project/project_rules/`.
-        *   Deletes existing Target Platform Rules (e.g., `.cursor/rules/`, `.clinerules/`).
-        *   Regenerates the Target Platform Rules based on the updated content in `project_rules/`.
+# List available rule sets
+uvx rulebook-ai list-rules
 
-5.  **Start Coding:**
-    *   Use your AI coding assistants (Cursor, CLINE, etc.) in your target project. They will now use the synchronized, platform-specific rules.
-    *   **Initial Prompt Suggestion (for setting up memory in a new project):**
-        > Using the project's custom rules, initialize the Memory Bank files (docs/, tasks/) based on the project's current state or initial requirements. Follow the structure and instructions defined in the rules for documenting project context.
+# Check your setup with the doctor command
+uvx rulebook-ai doctor
+
+# Clean up rules
+uvx rulebook-ai clean-rules --project-dir /path/to/your/project
+```
+
+### Using a Virtual Environment
+
+For development or more persistent usage:
+
+```bash
+# Create and activate a virtual environment
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install rulebook-ai in development mode
+uv pip install -e .
+
+# Now use the commands directly
+rulebook-ai install --rule-set light-spec --project-dir /path/to/your/project
+rulebook-ai sync --rule-set light-spec
+rulebook-ai list-rules
+```
+
+### Start Coding with AI Assistants
+
+Once rules are installed, use your AI coding assistants (Cursor, CLINE, etc.) in your target project.
+
+**Initial Prompt Suggestion (for setting up memory in a new project):**
+> Using the project's custom rules, initialize the Memory Bank files (docs/, tasks/) based on the project's current state or initial requirements. Follow the structure and instructions defined in the rules for documenting project context.
 
 6.  **Clean Up Rules (Preserving Memory & Tools):**
     *   To remove the generated Target Platform Rules and the `project_rules/` directory from your target project, while keeping your customized `memory/` and `tools/` directories intact, use the `clean-rules` command.

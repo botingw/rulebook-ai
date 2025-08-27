@@ -1,0 +1,144 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rulebook-ai"
+version = "0.1.0"
+description = "AI rulebook management for large language models"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Rulebook AI Contributors"}
+]
+dependencies = [
+    # Web scraping
+    "playwright>=1.41.0",
+    "html5lib>=1.1",
+    
+    # Search engine
+    "duckduckgo-search>=7.2.1",
+    
+    # LLM integration
+    "openai>=1.59.8",  # o1 support
+    "anthropic>=0.42.0",
+    "python-dotenv>=1.0.0",
+    
+    # Google Generative AI
+    "google-generativeai",
+    "grpcio==1.71.0",  # For Google GenAI preventing WARNING
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.5",
+    "unittest2>=1.1.0",
+    "ruff>=0.0.292",
+    "mypy>=1.5.1",
+    "pre-commit>=3.5.0",
+    "tox>=4.0.0",
+]
+
+[project.scripts]
+rulebook-ai = "rulebook_ai.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["rulebook_ai*"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+"rulebook_ai" = [
+    "rule_sets/**/*",
+    "memory_starters/**/*",
+    "tool_starters/**/*",
+    "memory/**/*"
+]
+
+[tool.setuptools.exclude-package-data]
+"rulebook_ai" = [
+    "*.pyc",
+    "__pycache__/*",
+    "*.egg-info/*"
+]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = ["E", "F", "I", "B", "C4", "C90", "UP", "N", "ANN", "S", "A"]
+ignore = ["ANN101", "ANN102", "ANN401"]
+
+[tool.ruff.isort]
+known-first-party = ["rulebook_ai"]
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+]
+addopts = "-v"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = false
+strict_optional = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+toxworkdir = {toxinidir}/test_env
+isolated_build = True
+envlist = unit, integration
+skipsdist = False
+
+[testenv:base]
+# Base test environment settings shared by both unit and integration
+deps =
+    pytest>=8.0.0
+    pytest-asyncio>=0.23.5
+    pytest-cov>=4.1.0
+    pytest-mock>=3.12.0
+    respx>=0.20.2
+    darglint>=1.8.1
+
+[testenv:unit]
+# Unit tests - use uv for development environment
+basepython = python3
+deps = {[testenv:base]deps}
+commands =
+    python -c "import sys; print(f'Python: {sys.executable}')"
+    python -m pytest tests/unit/ -v -s --cov=rulebook_ai --cov-report=term-missing
+
+[testenv:integration]
+# Integration tests - use standard pip to simulate a real user environment
+# The package is built by tox automatically (skipsdist = False)
+basepython = python3
+deps = {[testenv:base]deps}
+commands_pre =
+    python -c "import sys; print(f'Python: {sys.executable}')"
+    python -c "import rulebook_ai; print(f'✅ Package installed: rulebook-ai v{rulebook_ai.__version__}')"
+    python -c "from rulebook_ai.core import RuleManager; print('✅ Core module importable')"
+
+commands =
+    python -m pytest tests/integration/ -v -s --cov=rulebook_ai --cov-report=term-missing
+"""

@@ -66,6 +66,7 @@ log/
 htmlcov/
 .tox/
 .nox/
+test_env/
 .coverage
 .coverage.*
 .cache
@@ -96,8 +97,11 @@ dmypy.json
 .cursor/
 .roo/
 .windsurfrules
-.windsurf/
-.github/
+.windsurf/rules/
+# GitHub Copilot but allow workflows
+.github/copilot-instructions.md
+memory/
 project_rules/
 tools/
+
 
