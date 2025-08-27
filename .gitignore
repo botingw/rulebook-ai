@@ -100,8 +100,6 @@ dmypy.json
 .windsurf/rules/
 # GitHub Copilot but allow workflows
 .github/copilot-instructions.md
-memory/
 project_rules/
-tools/
 
 

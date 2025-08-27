@@ -8,7 +8,7 @@ from pathlib import Path
 # --- Absolute path to the root of your ACTUAL project framework ---
 FRAMEWORK_ROOT_ACTUAL = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 # Path to the ORIGINAL manage_rules.py script that will be COPIED
-MANAGE_RULES_SCRIPT_ORIGINAL_PATH = os.path.join(FRAMEWORK_ROOT_ACTUAL, "src", "manage_rules.py")
+MANAGE_RULES_SCRIPT_ORIGINAL_PATH = os.path.join(FRAMEWORK_ROOT_ACTUAL, "src", "rulebook_ai", "cli.py")
 
 # --- Directory names to be used INSIDE the temporary SOURCE framework ---
 TMP_SOURCE_RULE_SETS_DIR_NAME = "rule_sets"

@@ -245,6 +245,23 @@ def handle_clean_all(args: argparse.Namespace) -> int:
     Returns:
         Exit code (0 for success)
     """
+    print("WARNING: This will remove all rulebook-ai components from the target directory, including:")
+    print(" - project_rules/, memory/, and tools/ directories")
+    print(" - .cursor/, .windsurf/, .clinerules/, .roo/ directories")
+    print(" - .github/copilot-instructions.md, .env.example, requirements.txt")
+    print("\nThis may delete user-customized files in 'memory/' and 'tools/'.")
+    
+    try:
+        confirm = input("Are you sure you want to proceed? (yes/No): ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print("\nClean-all operation cancelled.")
+        return 1
+        
+    if confirm != 'yes':
+        print("Clean-all operation cancelled by user.")
+        return 0
+        
+    print("\nProceeding with full clean...")
     rule_manager = RuleManager()
     return rule_manager.clean_all(project_dir=args.project_dir)
 
@@ -273,6 +290,8 @@ def handle_list_rules(args: argparse.Namespace) -> int:
     print(f"\nDefault rule set: {DEFAULT_RULE_SET}")
     print("\nTo install a rule set:")
     print(f"  rulebook-ai install --rule-set <rule_set_name>")
+    
+    print("\n--- Listing complete ---")
     
     return 0
 
