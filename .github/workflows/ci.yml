@@ -22,6 +22,9 @@ jobs:
           curl -fsSL https://astral.sh/uv/install.sh | bash
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       
+      - name: Create virtual environment
+        run: uv venv
+      
       - name: Install dependencies
         run: |
           uv pip install -e ".[dev]"
@@ -51,6 +54,9 @@ jobs:
           curl -fsSL https://astral.sh/uv/install.sh | bash
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
       
+      - name: Create virtual environment
+        run: uv venv
+      
       - name: Install dependencies
         run: |
           uv pip install -e ".[dev]"
@@ -62,6 +68,9 @@ jobs:
           mkdir -p test_project
           rulebook-ai install --rule-set light-spec --project-dir test_project
           rulebook-ai clean-all --project-dir test_project
+
+      - name: Run tests with pytest
+        run: uv run pytest --cov=rulebook_ai
 
   build:
     runs-on: ubuntu-latest
@@ -80,6 +89,9 @@ jobs:
         run: |
           curl -fsSL https://astral.sh/uv/install.sh | bash
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      
+      - name: Create virtual environment
+        run: uv venv
       
       - name: Install dependencies
         run: |
