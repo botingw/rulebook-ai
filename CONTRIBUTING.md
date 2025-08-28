@@ -135,7 +135,8 @@ git push origin feature/your-new-feature
     - Link to the issue you are solving (e.g., "Closes #123").
     - Explain *why* you made the change and *what* the change does.
     - Explain *what* context engineering approaches you use when develop and where are context docs related to your contribution.
-- The project's CI pipeline will automatically run your tests. All checks must pass before your PR can be merged.
+- The project's CI pipeline will automatically run your tests.
+    - All test job checks (test (3.9), test (3.10), test (3.11) defined in .github/workflows/ci.yml) must pass before your PR can be merged.
 - A maintainer will review your code, and may ask for changes. Please be responsive to feedback!
 
 ## Coding Conventions

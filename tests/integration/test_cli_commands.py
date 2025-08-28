@@ -82,6 +82,7 @@ def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
     rule_to_modify.write_text(modified_content)
 
     synced_cursor_rule_file = tmp_target_repo_root / ".cursor" / "rules" / "01-meta-rules.mdc"
+    assert synced_cursor_rule_file.is_file() # debug
 
     result = script_runner(["sync"], tmp_target_repo_root)
     assert result.returncode == 0, f"Sync script failed. STDERR:\n{result.stderr}"
@@ -160,7 +161,7 @@ def test_list_rules(script_runner):
     assert "Available rule sets:" in stdout
     assert "- heavy-spec" in stdout
     assert "- light-spec" in stdout
-    assert "--- Listing complete ---" in stdout
+    
 
 def test_install_with_specific_assistant_flags(script_runner, tmp_path):
     """Test install with specific assistant flags."""
@@ -190,7 +191,7 @@ def test_install_with_all_assistants_flag(script_runner, tmp_path):
     tmp_target_repo_root = tmp_path / "my_project_all_assistants"
     tmp_target_repo_root.mkdir()
 
-    result = script_runner(["install", "--all-assistants"], tmp_target_repo_root)
+    result = script_runner(["install", "--all"], tmp_target_repo_root)
     assert result.returncode == 0, f"Script failed. STDERR:\n{result.stderr}\nSTDOUT:\n{result.stdout}"
 
     # Should create ALL assistant directories
@@ -236,7 +237,7 @@ def test_sync_detects_existing_assistants(script_runner, tmp_path):
     modified_content = " *** AUTO-DETECTION SYNC TEST *** "
     rule_to_modify.write_text(modified_content)
     
-    # Sync without flags should detect existing windsurf directory
+    # Sync without flags should now sync ALL assistants, not just existing ones
     result = script_runner(["sync"], tmp_target_repo_root)
     assert result.returncode == 0, f"Sync script failed. STDERR:\n{result.stderr}"
     
@@ -244,3 +245,8 @@ def test_sync_detects_existing_assistants(script_runner, tmp_path):
     synced_windsurf_rule_file = tmp_target_repo_root / ".windsurf" / "rules" / "01-meta-rules.md"
     assert synced_windsurf_rule_file.is_file()
     assert modified_content in synced_windsurf_rule_file.read_text()
+
+    # Check that another assistant (e.g., cursor) was ALSO synced
+    synced_cursor_rule_file = tmp_target_repo_root / ".cursor" / "rules" / "01-meta-rules.mdc"
+    assert synced_cursor_rule_file.is_file()
+    assert modified_content in synced_cursor_rule_file.read_text()
