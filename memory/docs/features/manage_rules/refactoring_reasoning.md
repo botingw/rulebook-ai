@@ -6,13 +6,13 @@ This document explains the thinking process and the fundamental principles used 
 
 The plan was not based on arbitrary preference but on established software engineering principles that promote maintainable, scalable, and robust code. These are:
 
-1.  **Single Responsibility Principle (SRP):** A class or module should have only one primary reason to change. The goal is to have components that do one thing and do it well.
+1.  **Separation of Concerns (SoC):** Different parts of the system should handle distinct concerns. The *data* that defines an assistant's rule system (`assistants.py`) should be strictly separate from the *logic* that generates those rules (`core.py`).
 
-2.  **Open/Closed Principle (OCP):** Software entities (classes, modules, functions) should be open for extension but closed for modification. This means you should be able to add new functionality without changing existing, working code.
+2.  **Open/Closed Principle (OCP):** Software entities should be open for extension but closed for modification. We should be able to add support for a new AI assistant by adding data to `assistants.py`, without modifying the existing engine code in `core.py`.
 
-3.  **Don't Repeat Yourself (DRY):** Avoid duplication of code and logic. Duplication leads to maintenance nightmares, where a change in one place must be manually replicated in many others.
+3.  **Single Source of Truth (SSoT):** There should be one authoritative place to find the specification for all supported assistants. The `SUPPORTED_ASSISTANTS` list in `assistants.py` becomes this source.
 
-4.  **Separation of Concerns (SoC):** Different parts of the system should handle distinct concerns. For example, the user interface should be separate from the core business logic.
+4.  **Don't Repeat Yourself (DRY):** Avoid duplication of information. By having the CLI dynamically generate its arguments from the SSoT, we ensure that an assistant is defined in exactly one place.
 
 ## My Thinking Process
 
@@ -20,38 +20,29 @@ My process for developing the plan followed these steps:
 
 ### Step 1: Analyze the Current State
 
-I started by reading `src/rulebook_ai/core.py` and `src/rulebook_ai/cli.py` to build a mental model of the existing architecture. I observed:
-*   `RuleManager` in `core.py` was a large class holding almost all the business logic.
-*   It contained many specific methods like `_install_cursor_rules`, `_sync_windsurf_rules`, etc.
-*   `cli.py` handled argument parsing but also contained some logic that wasn't strictly UI-related (e.g., the `doctor` command's implementation).
+I started by reading `src/rulebook_ai/core.py` and `src/rulebook_ai/cli.py`. I observed that the logic was monolithic: assistant-specific details (like target paths) and the file operation logic were tightly coupled inside the `RuleManager` class. The CLI layer also contained hardcoded, duplicated argument definitions.
 
 ### Step 2: Identify Pain Points Using a Thought Experiment
 
 To test the design's robustness, I asked a key question: **"What would I need to do to add a new assistant called 'FooCode'?"**
 
-The answer revealed the design's weaknesses:
-1.  Add a new constant for the target directory in `core.py`.
-2.  Add a new `_install_foocode_rules` method to `RuleManager`.
-3.  Add a new `_sync_foocode_rules` method to `RuleManager`.
-4.  Modify the `_install_assistant_rules` dispatcher in `RuleManager`.
-5.  Modify the `_sync_assistant_rules` dispatcher in `RuleManager`.
-6.  Add a `--foocode` flag to both the `install` and `sync` commands in `cli.py`.
-7.  Update the assistant list creation logic in `handle_install` and `handle_sync` in `cli.py`.
+The answer revealed that this would require changing code in at least four different places across two files, a clear violation of core software principles.
 
-This process violates the **Open/Closed Principle** because adding a feature requires modifying existing code in many places. It also shows that `RuleManager` has too many responsibilities (**SRP** violation) and that the CLI and core are tightly coupled.
+### Step 3: Apply First Principles to Formulate a Data-Driven Solution
 
-### Step 3: Apply First Principles to Formulate a Solution
+Based on the pain points, I applied the principles to design a much better, data-driven structure. The key insight was to stop thinking about assistants as a set of actions and instead define them by their fundamental, observable properties.
 
-Based on the pain points, I applied the principles to design a better structure:
+*   **First-Principles Decomposition:** I analyzed the documentation for all assistants to find the elemental attributes of their rule systems. I distilled these down to core concepts:
+    *   **Identity:** `name`, `display_name`
+    *   **Location & Cardinality:** `is_single_file`, `rule_path`, `filename`
+    *   **File Schema:** `file_extension`, `supports_subdirectories`
 
-*   To solve the **OCP** violation, I proposed the `Assistant` abstraction. Instead of `RuleManager` knowing about every assistant, it would operate on a generic `Assistant` interface. Now, adding a new assistant only requires creating a new class (extension), not modifying `RuleManager` (modification).
+*   **Achieve True Separation of Concerns:** By capturing these elemental attributes in a declarative `AssistantSpec` dataclass, I could separate the **data** from the **logic**. The new `assistants.py` file holds only this pure data. The `core.py` file becomes a generic engine that *interprets* this data.
 
-*   To address the **SRP** violation, this abstraction naturally breaks up the monolithic `RuleManager`. The `RuleManager`'s responsibility is simplified to *orchestrating* the process, while each `Assistant` class is responsible for its *own specific implementation*.
+*   **Adhere to the Open/Closed Principle:** To add a new assistant, a developer simply adds a new, correctly configured `AssistantSpec` object to the central list in `assistants.py`. **No other code changes are needed**. The system is extended without modification.
 
-*   The **DRY** principle was applied to `cli.py`, where the `install` and `sync` commands had nearly identical argument parsing logic. A single helper function solves this.
-
-*   **Separation of Concerns** motivated moving the `doctor` command's implementation out of the UI layer (`cli.py`) and into the core logic layer (`core.py`), making the CLI a thinner, more focused view controller.
+*   **Enforce DRY and SSoT:** The `SUPPORTED_ASSISTANTS` list in `assistants.py` becomes the Single Source of Truth. The CLI layer (`cli.py`) will now read this list and *dynamically generate* its command-line arguments. The `RuleManager` in `core.py` will read the same list to drive its logic. Information is defined once and reused everywhere.
 
 ### Step 4: Structure the Plan for Execution
 
-Finally, I organized the solution into a phased plan (`task_plan.md`). This makes the refactoring process incremental and easier to manage, starting with the core abstractions first (Phase 1) before moving to the dependent CLI changes (Phase 2) and final verification (Phase 3).
+Finally, I organized the solution into a phased plan (`refactoring_plan.md`). This makes the refactoring process incremental and easier to manage, starting with the creation of the new `assistants.py` and the refactoring of the `core.py` engine, before moving to the dependent CLI changes.

@@ -4,53 +4,43 @@
 
 ## High-Level Goal
 
-The current implementation in `core.py` and `cli.py` is functional, but the logic for handling different AI assistants (Cursor, Cline, etc.) is tightly coupled within the `RuleManager` class. Adding a new assistant requires modifying multiple `if/elif` blocks and functions across both files. This makes the code harder to maintain and extend.
+The current implementation in `core.py` is monolithic. The logic for handling different AI assistants is tightly coupled with the core file-management operations, making the system difficult to extend and maintain.
 
-This refactoring introduces an "Assistant" abstraction using a more object-oriented approach. Each supported AI assistant will be represented by its own class, encapsulating its specific configuration (like its target directory name) and behavior (how to generate its rule files).
+This refactoring will implement a clean **separation of concerns** by splitting the logic into two distinct parts:
+1.  **A declarative configuration (`assistants.py`)**: This new file will define the *specification* for each assistant—what they expect to find on the filesystem—using a pure, data-only `AssistantSpec` class.
+2.  **A generic engine (`core.py`)**: The `RuleManager` will be refactored into a generic engine that reads the assistant specifications and performs the necessary file operations. It will contain all the logic for how to generate rules.
 
-The `RuleManager` will be simplified to operate on a collection of these "Assistant" objects, delegating the specific work to them. This will make adding a new assistant as simple as creating a new `Assistant` class and registering it, adhering to the Open/Closed Principle.
+This change will make adding a new assistant a simple matter of adding a new entry to the configuration file, without touching the core engine logic.
 
 ---
 
 ## Detailed Refactoring Plan
 
-### Phase 1: Abstract AI Assistants in `src/rulebook_ai/core.py`
+### Phase 1: Separate Specification from Logic
 
-1.  **Introduce an `Assistant` Abstraction:**
-    *   Create a base class (or a `Protocol`) named `Assistant` that defines a common interface for all assistants.
-    *   This interface will include:
-        *   `name`: A string identifier (e.g., 'cursor').
-        *   `install(source_dir, target_root)`: A method to handle the installation logic for that assistant.
-        *   `sync(source_dir, target_root)`: A method to synchronize rules, which can default to cleaning and then installing.
-        *   `clean(target_root)`: A method to remove all files and directories related to the assistant.
+1.  **Create `src/rulebook_ai/assistants.py` (New File):**
+    *   This file will contain the declarative specifications for all supported assistants and will have no logic.
+    *   Define a new `AssistantSpec` `dataclass` based on a first-principles analysis of assistant rule systems. Key attributes will include:
+        *   `name`, `display_name`
+        *   `is_single_file` (boolean)
+        *   `rule_path` (the directory where rules are stored)
+        *   `filename` (for single-file assistants)
+        *   `file_extension` (for multi-file assistants)
+        *   `supports_subdirectories` (boolean)
+    *   Create the `SUPPORTED_ASSISTANTS` list in this file, populated with an `AssistantSpec` instance for each AI tool.
 
-2.  **Implement Concrete `Assistant` Classes:**
-    *   For each currently supported assistant, create a concrete class that implements the `Assistant` interface (e.g., `CursorAssistant`, `WindsurfAssistant`, `ClineAssistant`, `RooCodeAssistant`).
-    *   Each class will contain the specific logic and configuration for its assistant. For example, `CursorAssistant` will know its target directory is `.cursor/rules` and that it needs to generate `.mdc` files.
-    *   These classes will reuse the existing file operation helpers (like `copy_and_number_files`) from `RuleManager`.
+2.  **Refactor `src/rulebook_ai/core.py` into a Generic Engine:**
+    *   Remove all assistant-specific constants and logic from `core.py`.
+    *   Import the `SUPPORTED_ASSISTANTS` configuration from the new `assistants.py`.
+    *   Refactor `RuleManager` to be a generic interpreter of the `AssistantSpec`.
+    *   The logic for *how* to generate rules (e.g., "flatten and number files" vs. "preserve hierarchy") will now reside entirely within private methods in `RuleManager`. The manager will decide which strategy to use based on the pure attributes from an `AssistantSpec` (e.g., if `supports_subdirectories` is `False`, it must flatten).
 
-3.  **Create a Central `AssistantRegistry`:**
-    *   Implement a registry (e.g., a dictionary or a dedicated class) that holds an instance of each concrete `Assistant` class.
-    *   This registry will serve as the single source of truth for all supported assistants, making them discoverable.
+### Phase 2: Simplify and Automate `src/rulebook_ai/cli.py`
 
-4.  **Refactor `RuleManager` to be an Orchestrator:**
-    *   Remove the assistant-specific private methods (e.g., `_install_cursor_rules`, `_sync_roo_rules`).
-    *   Modify the main `install`, `sync`, and `clean_rules` methods. Instead of containing large `if/elif` blocks, they will now iterate over a list of `Assistant` objects (retrieved from the registry based on user input) and call the appropriate method (`install`, `sync`, `clean`) on each one.
+1.  **Automate CLI Argument Generation:**
+    *   The `cli.py` module will import `SUPPORTED_ASSISTANTS` from `assistants.py`.
+    *   A helper function will be created that iterates through this list and **dynamically generates** the CLI flags (e.g., `--cursor`, `--cline`, `--copilot`) and their help text for the `install` and `sync` commands.
 
-5.  **Treat GitHub Copilot as an Assistant:**
-    *   Create a `CopilotAssistant` class that implements the `Assistant` interface. Its `install` logic will use the `concatenate_ordered_files` function.
-    *   This removes the special-cased `include_copilot` boolean flag, making the logic more consistent and unified.
-
-### Phase 2: Simplify and Decouple `src/rulebook_ai/cli.py`
-
-1.  **Reduce Argument Parser Duplication:**
-    *   Create a single helper function, `add_assistant_arguments(parser)`, which adds all the assistant-related command-line flags (e.g., `--cursor`, `--cline`, `--all-assistants`) to a given parser.
-    *   Use this helper function for both the `install` and `sync` command parsers to keep them consistent and DRY (Don't Repeat Yourself).
-
-2.  **Decouple CLI from Core Logic:**
-    *   The logic for determining which assistants to act on will be simplified. The CLI will pass the list of selected assistant names (e.g., `['cursor', 'copilot']`) to the `RuleManager`.
-    *   The `RuleManager` will then use the `AssistantRegistry` to get the corresponding `Assistant` objects.
-
-3.  **Improve Separation of Concerns for the `doctor` Command:**
-    *   Move the environment-checking logic currently inside the `handle_doctor` function into a new, dedicated `run_doctor_check()` method within the `RuleManager` class in `core.py`.
-    *   The `handle_doctor` function in `cli.py` will become a simple wrapper that calls this new core method.
+2.  **Decouple Handlers from Implementation:**
+    *   The command-handling functions (`handle_install`, `handle_sync`) will be simplified. They will determine which assistants were selected by the user and pass a simple list of their string names (e.g., `['cursor', 'copilot']`) to the `RuleManager`.
+    *   The special-cased `include_copilot` boolean flag will be removed entirely, as Copilot will be handled uniformly with all other assistants via its own `--copilot` flag.
