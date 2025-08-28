@@ -9,7 +9,9 @@ import os
 import shutil
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional
+
+from .assistants import AssistantSpec, SUPPORTED_ASSISTANTS, ASSISTANT_MAP
 
 # --- Constants ---
 SOURCE_RULE_SETS_DIR = "rule_sets"
@@ -21,14 +23,6 @@ TARGET_MEMORY_BANK_DIR = "memory"
 TARGET_TOOLS_DIR = "tools"
 
 DEFAULT_RULE_SET = "light-spec"
-TARGET_GITHUB_COPILOT_DIR = ".github"
-TARGET_COPILOT_INSTRUCTIONS_FILE = "copilot-instructions.md"
-
-# Assistant-specific directories
-TARGET_CURSOR_DIR = ".cursor/rules"
-TARGET_WINDSURF_DIR = ".windsurf/rules"
-TARGET_CLINE_DIR = ".clinerules"
-TARGET_ROO_DIR = ".roo/rules"
 
 SOURCE_ENV_EXAMPLE_FILE = ".env.example"
 SOURCE_REQUIREMENTS_TXT_FILE = "requirements.txt"
@@ -38,52 +32,23 @@ class RuleManager:
     """Manages the installation and synchronization of AI rules and related files."""
 
     def __init__(self, project_root: Optional[str] = None) -> None:
-        """
-        Initialize the RuleManager with project paths.
-        
-        Args:
-            project_root: Root directory of the target project. If None, uses the current directory.
-        """
-        # Determine package path (where our package is installed)
         self.package_path = Path(__file__).parent.absolute()
-        
-        # Determine source paths (within our package)
         self.source_rules_dir = self.package_path / SOURCE_RULE_SETS_DIR
         self.source_memory_dir = self.package_path / SOURCE_MEMORY_STARTERS_DIR
         self.source_tools_dir = self.package_path / SOURCE_TOOL_STARTERS_DIR
         
-        # If source dirs don't exist in package, try to find them in development mode
-        # This is for development convenience
+        # Handle development environment structure
         if not self.source_rules_dir.exists():
             dev_root = self.package_path.parent.parent
             self.source_rules_dir = dev_root / SOURCE_RULE_SETS_DIR
             self.source_memory_dir = dev_root / SOURCE_MEMORY_STARTERS_DIR
             self.source_tools_dir = dev_root / SOURCE_TOOL_STARTERS_DIR
         
-        # Determine target project root
-        if project_root is None:
-            # Default to current directory
-            self.project_root = Path.cwd().absolute()
-        else:
-            self.project_root = Path(project_root).absolute()
-        
-        # Target directories (within user's project)
-        self.target_rules_dir = self.project_root / TARGET_PROJECT_RULES_DIR
-        self.target_memory_dir = self.project_root / TARGET_MEMORY_BANK_DIR
-        self.target_tools_dir = self.project_root / TARGET_TOOLS_DIR
-        self.target_github_dir = self.project_root / TARGET_GITHUB_COPILOT_DIR
+        self.project_root = Path(project_root).absolute() if project_root else Path.cwd().absolute()
 
-    def copy_file(self, source: Path, destination: Path) -> bool:
-        """
-        Copy a file from source to destination, creating parent directories if needed.
-        
-        Args:
-            source: Source file path
-            destination: Destination file path
-            
-        Returns:
-            bool: True if copy was successful, False otherwise
-        """
+    # --- Private File Operation Helpers ---
+
+    def _copy_file(self, source: Path, destination: Path) -> bool:
         try:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
@@ -92,632 +57,222 @@ class RuleManager:
             print(f"Error copying {source} to {destination}: {e}")
             return False
 
-    def get_ordered_source_files(self, source_dir_path: Path) -> List[Path]:
-        """
-        Get a sorted list of all files in a directory (recursively).
-        
-        Args:
-            source_dir_path: Directory to scan for files
-            
-        Returns:
-            List of Path objects for files found, sorted alphabetically
-        """
+    def _get_ordered_source_files(self, source_dir_path: Path, recursive: bool) -> List[Path]:
         if not source_dir_path.is_dir():
-            print(f"Error: Source directory '{source_dir_path}' not found or is not a directory.")
             return []
-            
-        all_source_files = []
-        for root, dirs, files in os.walk(source_dir_path):
-            dirs.sort()
-            files.sort()
-            root_path = Path(root)
-            for filename in sorted(files):
-                if filename.startswith('.'):
-                    continue
-                    
-                file_path = root_path / filename
-                if file_path.is_file():
-                    all_source_files.append(file_path)
-                    
-        return sorted(all_source_files)
+        pattern = "**/*" if recursive else "*"
+        all_files = [p for p in source_dir_path.glob(pattern) if p.is_file() and not p.name.startswith('.')]
+        return sorted(all_files)
 
-    def copy_tree_non_destructive(self, src_dir: Path, dest_dir: Path) -> int:
-        """
-        Copy a directory tree without overwriting existing files.
-        
-        Args:
-            src_dir: Source directory
-            dest_dir: Destination directory
-            
-        Returns:
-            int: Number of new items copied
-        """
+    def _copy_tree_non_destructive(self, src_dir: Path, dest_dir: Path) -> int:
         dest_dir.mkdir(parents=True, exist_ok=True)
-        new_items_copied_count = 0
-        
+        count = 0
         if not src_dir.is_dir():
-            print(f"Warning: Source directory for non-destructive copy not found: {src_dir}")
             return 0
-            
         for item in src_dir.iterdir():
             dest_item = dest_dir / item.name
-            
             if item.is_dir():
                 if not dest_item.exists():
                     shutil.copytree(item, dest_item)
-                    new_items_copied_count += 1
+                    count += 1
                 else:
-                    new_items_copied_count += self.copy_tree_non_destructive(item, dest_item)
-            else:
-                if not dest_item.exists():
-                    if self.copy_file(item, dest_item):
-                        new_items_copied_count += 1
-                        
-        return new_items_copied_count
+                    count += self._copy_tree_non_destructive(item, dest_item)
+            elif not dest_item.exists() and self._copy_file(item, dest_item):
+                count += 1
+        return count
 
-    def copy_and_number_files(self, source_dir: Path, dest_dir: Path, 
-                             extension_mode: str = 'keep') -> int:
-        """
-        Copy files from source to destination with numeric prefixes.
-        
-        Args:
-            source_dir: Source directory
-            dest_dir: Destination directory
-            extension_mode: How to handle file extensions ('keep', 'add_mdc', 'add_md', 'remove')
-            
-        Returns:
-            int: Number of files copied
-        """
+    # --- Private Rule Generation Strategies ---
+
+    def _strategy_flatten_and_number(self, source_dir: Path, dest_dir: Path, extension: Optional[str]) -> int:
         dest_dir.mkdir(parents=True, exist_ok=True)
-        all_source_files = self.get_ordered_source_files(source_dir)
-        
+        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
         if not all_source_files:
-            print(f"Info: No source files found in '{source_dir}' to process for numbering.")
             return 0
-            
-        # Count existing numbered files
-        existing_files_count = 0
-        if dest_dir.exists():
-            existing_files_count = sum(
-                1 for f in dest_dir.iterdir() 
-                if f.is_file() and re.match(r"^\d+-", f.name)
-            )
-            
-        next_num = existing_files_count + 1
-        files_copied = 0
         
+        next_num = 1
         for source_path in all_source_files:
-            base_filename = source_path.name
-            filename_no_prefix = re.sub(r"^\d+-", "", base_filename)
-            
-            if extension_mode == 'keep':
-                new_filename = f"{next_num:02d}-{filename_no_prefix}"
-            elif extension_mode == 'add_mdc':
-                filename_stem = source_path.stem
-                filename_stem = re.sub(r"^\d+-", "", filename_stem)
-                new_filename = f"{next_num:02d}-{filename_stem}.mdc"
-            elif extension_mode == 'add_md':
-                filename_stem = source_path.stem
-                filename_stem = re.sub(r"^\d+-", "", filename_stem)
-                new_filename = f"{next_num:02d}-{filename_stem}.md"
-            elif extension_mode == 'remove':
-                filename_stem = source_path.stem
-                filename_stem = re.sub(r"^\d+-", "", filename_stem)
-                new_filename = f"{next_num:02d}-{filename_stem}"
-            else:
-                # Default: add .md extension
-                filename_stem = source_path.stem
-                filename_stem = re.sub(r"^\d+-", "", filename_stem)
-                new_filename = f"{next_num:02d}-{filename_stem}.md"
-                
-            dest_file_path = dest_dir / new_filename
-            if self.copy_file(source_path, dest_file_path):
+            stem = re.sub(r"^\d+-", "", source_path.stem)
+            new_extension = extension if extension is not None else ''
+            new_filename = f"{next_num:02d}-{stem}{new_extension}"
+            if self._copy_file(source_path, dest_dir / new_filename):
                 next_num += 1
-                files_copied += 1
-                
-        return files_copied
-                
-    def copy_and_restructure_roocode(self, source_dir: Path, dest_dir: Path) -> int:
-        """
-        Copy and restructure files for roocode format.
-        
-        Args:
-            source_dir: Source directory 
-            dest_dir: Destination directory
-            
-        Returns:
-            int: Number of files copied
-        """
+        return len(all_source_files)
+
+    def _strategy_preserve_hierarchy(self, source_dir: Path, dest_dir: Path) -> int:
         dest_dir.mkdir(parents=True, exist_ok=True)
-        all_source_files = self.get_ordered_source_files(source_dir)
-        
+        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
         if not all_source_files:
-            print(f"Info: No source files found in '{source_dir}' for restructuring.")
             return 0
-            
-        files_copied = 0
-        # Process each file
         for source_path in all_source_files:
-            rel_path = source_path.relative_to(source_dir)
-            dest_path = dest_dir / rel_path
-            
-            # Create intermediate directories
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Copy the file
-            if self.copy_file(source_path, dest_path):
-                files_copied += 1
-                
-        return files_copied
+            dest_path = dest_dir / source_path.relative_to(source_dir)
+            self._copy_file(source_path, dest_path)
+        return len(all_source_files)
 
-    def concatenate_ordered_files(self, source_dir: Path, dest_file_path: Path) -> None:
-        """
-        Concatenate all files in a directory into a single output file.
-        
-        Args:
-            source_dir: Directory containing files to concatenate
-            dest_file_path: Path for the output concatenated file
-        """
-        all_source_files = self.get_ordered_source_files(source_dir)
-        
+    def _strategy_concatenate_files(self, source_dir: Path, dest_file: Path) -> None:
+        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
         if not all_source_files:
-            print(f"Info: No source files found in '{source_dir}' to concatenate.")
             return
-            
-        # Create parent directories if they don't exist
-        dest_file_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(dest_file_path, 'w', encoding='utf-8') as output_file:
-            for source_path in all_source_files:
-                try:
-                    with open(source_path, 'r', encoding='utf-8') as input_file:
-                        file_content = input_file.read()
-                    
-                    output_file.write(f"# {source_path.name}\n\n")
-                    output_file.write(file_content)
-                    output_file.write("\n\n")
-                except Exception as e:
-                    print(f"Error processing {source_path}: {e}")
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(dest_file, 'w', encoding='utf-8') as output_file:
+            for i, source_path in enumerate(all_source_files):
+                output_file.write(f"# Rule: {source_path.name}\n\n")
+                output_file.write(source_path.read_text(encoding='utf-8'))
+                if i < len(all_source_files) - 1:
+                    output_file.write("\n\n---\n\n")
 
-    def install(self, rule_set: str = DEFAULT_RULE_SET, 
-               project_dir: Optional[str] = None,
-               clean_first: bool = False,
-               include_copilot: bool = True,
-               assistants: Optional[List[str]] = None) -> int:
-        """
-        Install a ruleset into a target project directory.
+    # --- Private Generic Generation Engine ---
+
+    def _generate_for_assistant(self, spec: AssistantSpec, source_dir: Path, target_root: Path):
+        target_path = target_root / spec.rule_path
         
-        Args:
-            rule_set: Name of the rule set to install
-            project_dir: Target project directory. If None, uses current project root.
-            clean_first: Whether to clean existing rules before installation
-            include_copilot: Whether to include GitHub Copilot instructions
-            assistants: List of AI assistants to install for. If None/empty, installs generic rules only.
-            
-        Returns:
-            int: Return code (0 for success, non-zero for error)
-        """
-        if project_dir is not None:
-            target_root = Path(project_dir).absolute()
+        if not spec.is_multi_file:
+            dest_file = target_path / spec.filename
+            self._strategy_concatenate_files(source_dir, dest_file)
+            print(f"  -> Generated {spec.display_name} instructions at {dest_file}")
+            return
+
+        count = 0
+        if not spec.supports_subdirectories:
+            count = self._strategy_flatten_and_number(source_dir, target_path, spec.file_extension)
         else:
-            target_root = self.project_root
-            
-        # Set target directories based on provided project directory
+            count = self._strategy_preserve_hierarchy(source_dir, target_path)
+        
+        if count > 0:
+            print(f"  -> Generated {count} {spec.display_name} rule files in {target_path}")
+
+    # --- Public Command Methods ---
+
+    def install(self, rule_set: str = DEFAULT_RULE_SET, project_dir: Optional[str] = None,
+                clean_first: bool = False, assistants: Optional[List[str]] = None) -> int:
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
         target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        target_memory_dir = target_root / TARGET_MEMORY_BANK_DIR
-        target_tools_dir = target_root / TARGET_TOOLS_DIR
-        target_github_dir = target_root / TARGET_GITHUB_COPILOT_DIR
-        
-        # Source directory for the specific rule set
         rule_set_source_dir = self.source_rules_dir / rule_set
-        
-        # Per spec, rule set installation is always destructive for the rules directory.
-        if target_rules_dir.exists():
-            print(f"Warning: Existing rule directory '{target_rules_dir}' will be replaced.")
-            shutil.rmtree(target_rules_dir)
 
-        # The `clean_first` flag from the CLI can be used to also clean the copilot file.
-        if clean_first and include_copilot and (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).exists():
-            (target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE).unlink()
-                
-        # Verify the rule set exists
+        if clean_first:
+            self.clean_rules(str(target_root))
+
         if not rule_set_source_dir.is_dir():
-            print(f"Error: Rule set '{rule_set}' not found in {self.source_rules_dir}")
-            print("Available rule sets:")
-            for rule_dir in sorted(p.name for p in self.source_rules_dir.iterdir() if p.is_dir()):
-                print(f"  - {rule_dir}")
+            print(f"Error: Rule set '{rule_set}' not found.")
+            self.list_rules()
             return 1
+
+        print(f"Installing framework components from rule set '{rule_set}'...")
+        # 1. Copy rule set (destructive)
+        if target_rules_dir.exists():
+            shutil.rmtree(target_rules_dir)
+        shutil.copytree(rule_set_source_dir, target_rules_dir)
+        print(f"- Copied rule set to '{target_rules_dir}'")
+
+        # 2. Copy memory and tools (non-destructive)
+        for starter, target in [(self.source_memory_dir, TARGET_MEMORY_BANK_DIR), (self.source_tools_dir, TARGET_TOOLS_DIR)]:
+            count = self._copy_tree_non_destructive(starter, target_root / target)
+            if count > 0:
+                print(f"- Copied {count} files to '{target_root / target}'")
+
+        # 3. Copy env and requirements (non-destructive)
+        for filename in [SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]:
+            source_file = self.source_rules_dir.parent / filename
+            if source_file.is_file() and not (target_root / filename).exists():
+                self._copy_file(source_file, target_root / filename)
+                print(f"- Created '{target_root / filename}'")
             
-        # Create target directories
-        target_memory_dir.mkdir(parents=True, exist_ok=True)
-        target_tools_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Copy rule files
-        print(f"Installing rule set '{rule_set}'...")
-        try:
-            shutil.copytree(rule_set_source_dir, target_rules_dir)
-            print(f"Successfully copied rule set to '{target_rules_dir}'.")
-        except Exception as e:
-            print(f"Error copying rule set: {e}")
-            return 1
-        
-        # Copy memory starters non-destructively (ruleset-specific first, then global fallback)
-        ruleset_memory_dir = rule_set_source_dir / "memory_starters"
-        if ruleset_memory_dir.exists():
-            memory_count = self.copy_tree_non_destructive(
-                ruleset_memory_dir, 
-                target_memory_dir
-            )
-            print(f"Copied {memory_count} new ruleset-specific memory starter files.")
-        else:
-            memory_count = self.copy_tree_non_destructive(
-                self.source_memory_dir, 
-                target_memory_dir
-            )
-            print(f"Copied {memory_count} new global memory starter files.")
-        
-        # Copy tool starters non-destructively (ruleset-specific first, then global fallback)
-        ruleset_tools_dir = rule_set_source_dir / "tool_starters"
-        if ruleset_tools_dir.exists():
-            tools_count = self.copy_tree_non_destructive(
-                ruleset_tools_dir, 
-                target_tools_dir
-            )
-            print(f"Copied {tools_count} new ruleset-specific tool starter files.")
-        else:
-            tools_count = self.copy_tree_non_destructive(
-                self.source_tools_dir, 
-                target_tools_dir
-            )
-            print(f"Copied {tools_count} new global tool starter files.")
-        
-        # Copy env.example and requirements.txt non-destructively from the package directory
-        files_to_copy = [SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]
-        for filename in files_to_copy:
-            source_file = self.package_path / filename
-            target_file = target_root / filename
-            if source_file.is_file():
-                if not target_file.exists():
-                    self.copy_file(source_file, target_file)
-                    print(f"Copied '{filename}' to {target_root}")
-                else:
-                    print(f"'{filename}' already exists in target. Skipping.")
-            else:
-                print(f"Warning: Source file for '{filename}' not found in package path '{self.package_path}'. Skipping.")
-            
-        # Copy GitHub Copilot instructions if requested
-        if include_copilot:
-            github_dir_path = target_github_dir
-            github_dir_path.mkdir(parents=True, exist_ok=True)
-            
-            copilot_dest_path = github_dir_path / TARGET_COPILOT_INSTRUCTIONS_FILE
-            if not copilot_dest_path.exists():
-                # Create instructions by concatenating all rules
-                self.concatenate_ordered_files(
-                    target_rules_dir, 
-                    copilot_dest_path
-                )
-                print(f"Created GitHub Copilot instructions at {copilot_dest_path}")
-            else:
-                print(f"GitHub Copilot instructions already exist at {copilot_dest_path}")
-        
-        # Install assistant-specific rules if requested
-        if assistants:
-            self._install_assistant_rules(rule_set_source_dir, target_root, assistants)
+        # 4. Per spec, run the sync logic
+        print("\nRunning initial synchronization...")
+        self.sync(str(target_root), assistants)
                 
-        print(f"Rule set '{rule_set}' installed successfully in {target_root}")
+        print(f"\nInstallation complete.")
         return 0
 
-    def _install_assistant_rules(self, source_dir: Path, target_root: Path, assistants: List[str]) -> None:
-        """
-        Install rules for specific AI assistants.
-        
-        Args:
-            source_dir: Source directory containing the rules
-            target_root: Target project root directory
-            assistants: List of assistant names to install for
-        """
-        for assistant in assistants:
-            if assistant == 'cursor':
-                self._install_cursor_rules(source_dir, target_root)
-            elif assistant == 'windsurf':
-                self._install_windsurf_rules(source_dir, target_root)
-            elif assistant == 'cline':
-                self._install_cline_rules(source_dir, target_root)
-            elif assistant == 'roo':
-                self._install_roo_rules(source_dir, target_root)
-            else:
-                print(f"Warning: Unknown assistant '{assistant}' - skipping")
-
-    def _install_cursor_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Install rules for Cursor AI assistant (.cursor/rules/*.mdc)."""
-        target_dir = target_root / TARGET_CURSOR_DIR
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='add_mdc')
-        print(f"Created {count} Cursor rule files in {target_dir}")
-
-    def _install_windsurf_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Install rules for Windsurf AI assistant (.windsurf/rules/*.md)."""
-        target_dir = target_root / TARGET_WINDSURF_DIR
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='add_md')
-        print(f"Created {count} Windsurf rule files in {target_dir}")
-
-    def _install_cline_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Install rules for Cline AI assistant (.clinerules/)."""
-        target_dir = target_root / TARGET_CLINE_DIR
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='remove')
-        print(f"Created {count} Cline rule files in {target_dir}")
-
-    def _install_roo_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Install rules for RooCode AI assistant (.roo/rules/)."""
-        target_dir = target_root / TARGET_ROO_DIR
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_restructure_roocode(source_dir, target_dir)
-        print(f"Created {count} RooCode rule files in {target_dir}")
-
-    def sync(self, rule_set: str = DEFAULT_RULE_SET,
-            project_dir: Optional[str] = None,
-            include_copilot: bool = True,
-            assistants: Optional[List[str]] = None) -> int:
-        """
-        Synchronize assistant-specific rules from existing project_rules directory.
-        
-        This is the correct sync behavior: uses project_rules/ as source and 
-        regenerates assistant-specific directories (.cursor/, .windsurf/, etc.)
-        
-        Args:
-            rule_set: Name of the rule set (ignored - uses existing project_rules/)
-            project_dir: Target project directory. If None, uses current project root.
-            include_copilot: Whether to include GitHub Copilot instructions
-            assistants: List of assistants to sync. If None, syncs all existing assistants.
-            
-        Returns:
-            int: Return code (0 for success, non-zero for error)
-        """
-        if project_dir is not None:
-            target_root = Path(project_dir).absolute()
-        else:
-            target_root = self.project_root
-            
-        # The source is the existing project_rules directory
+    def sync(self, project_dir: Optional[str] = None, assistants: Optional[List[str]] = None) -> int:
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
         source_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
         
-        # Verify project_rules directory exists
-        if not source_rules_dir.exists():
-            print(f"Error: Project rules directory '{source_rules_dir}' does not exist.")
-            print("Run 'install' command first to create the initial rule structure.")
+        if not source_rules_dir.is_dir():
+            print(f"Error: '{source_rules_dir}' does not exist. Run 'install' first.")
             return 1
             
-        print("Syncing assistant-specific rules from project_rules/...")
+        names_to_sync = assistants
+        if names_to_sync is None:
+            # Per the design spec, sync with no flags defaults to all assistants
+            names_to_sync = [a.name for a in SUPPORTED_ASSISTANTS]
+
+        if not names_to_sync:
+            print("No assistants selected to sync. Use --[assistant] or --all to specify.")
+            return 0
         
-        # Determine which assistants to sync
-        if assistants is None:
-            # Auto-detect existing assistant directories
-            assistants = []
-            if (target_root / TARGET_CURSOR_DIR).exists():
-                assistants.append('cursor')
-            if (target_root / TARGET_WINDSURF_DIR).exists():
-                assistants.append('windsurf') 
-            if (target_root / TARGET_CLINE_DIR).exists():
-                assistants.append('cline')
-            if (target_root / TARGET_ROO_DIR).exists():
-                assistants.append('roo')
-                
-            if not assistants:
-                print("No existing assistant directories found.")
-                print("Use --cursor, --windsurf, --cline, --roo, or --all-assistants to specify which to sync.")
-                return 2
-                
-        # Remove and regenerate assistant-specific directories
-        if assistants:
-            self._sync_assistant_rules(source_rules_dir, target_root, assistants)
-        
-        # Update GitHub Copilot instructions if requested
-        if include_copilot:
-            target_github_dir = target_root / TARGET_GITHUB_COPILOT_DIR
-            copilot_dest_path = target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE
-            if copilot_dest_path.exists():
-                copilot_dest_path.unlink()
-                
-            target_github_dir.mkdir(parents=True, exist_ok=True)
-            self.concatenate_ordered_files(source_rules_dir, copilot_dest_path)
-            print(f"Updated GitHub Copilot instructions at {copilot_dest_path}")
+        print(f"Syncing rules from '{source_rules_dir}' for: {', '.join(names_to_sync)}")
+        for name in names_to_sync:
+            spec = ASSISTANT_MAP.get(name)
+            if not spec: continue
+
+            # 1. Clean the existing rules for the assistant
+            path_to_clean = target_root / spec.clean_path
+            if path_to_clean.is_dir():
+                shutil.rmtree(path_to_clean)
+            elif path_to_clean.is_file():
+                path_to_clean.unlink()
+
+            # 2. Regenerate the rules from project_rules/
+            self._generate_for_assistant(spec, source_rules_dir, target_root)
             
-        print(f"Rules synced successfully from {source_rules_dir}")
+        print("\nSync complete.")
         return 0
 
-    def _sync_assistant_rules(self, source_dir: Path, target_root: Path, assistants: List[str]) -> None:
-        """
-        Sync rules for specific AI assistants by removing and regenerating their directories.
-        
-        Args:
-            source_dir: Source directory (project_rules/)
-            target_root: Target project root directory
-            assistants: List of assistant names to sync
-        """
-        for assistant in assistants:
-            if assistant == 'cursor':
-                self._sync_cursor_rules(source_dir, target_root)
-            elif assistant == 'windsurf':
-                self._sync_windsurf_rules(source_dir, target_root)
-            elif assistant == 'cline':
-                self._sync_cline_rules(source_dir, target_root)
-            elif assistant == 'roo':
-                self._sync_roo_rules(source_dir, target_root)
-            else:
-                print(f"Warning: Unknown assistant '{assistant}' - skipping")
-
-    def _sync_cursor_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Sync rules for Cursor AI assistant (.cursor/rules/*.mdc)."""
-        target_dir = target_root / TARGET_CURSOR_DIR
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='add_mdc')
-        print(f"Synced {count} Cursor rule files in {target_dir}")
-
-    def _sync_windsurf_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Sync rules for Windsurf AI assistant (.windsurf/rules/*.md)."""
-        target_dir = target_root / TARGET_WINDSURF_DIR
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='add_md')
-        print(f"Synced {count} Windsurf rule files in {target_dir}")
-
-    def _sync_cline_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Sync rules for Cline AI assistant (.clinerules/)."""
-        target_dir = target_root / TARGET_CLINE_DIR
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_number_files(source_dir, target_dir, extension_mode='remove')
-        print(f"Synced {count} Cline rule files in {target_dir}")
-
-    def _sync_roo_rules(self, source_dir: Path, target_root: Path) -> None:
-        """Sync rules for RooCode AI assistant (.roo/rules/)."""
-        target_dir = target_root / TARGET_ROO_DIR
-        if target_dir.exists():
-            shutil.rmtree(target_dir)
-        target_dir.mkdir(parents=True, exist_ok=True)
-        
-        count = self.copy_and_restructure_roocode(source_dir, target_dir)
-        print(f"Synced {count} RooCode rule files in {target_dir}")
-
     def clean_rules(self, project_dir: Optional[str] = None) -> int:
-        """
-        Clean rules from a target project directory.
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
+        print("Cleaning rule-related files and directories...")
         
-        Args:
-            project_dir: Target project directory. If None, uses current project root.
+        # 1. Remove the project_rules directory
+        rules_dir = target_root / TARGET_PROJECT_RULES_DIR
+        if rules_dir.exists():
+            shutil.rmtree(rules_dir)
+            print(f"- Removed: {rules_dir}")
             
-        Returns:
-            int: Return code (0 for success, non-zero for error)
-        """
-        if project_dir is not None:
-            target_root = Path(project_dir).absolute()
-        else:
-            target_root = self.project_root
+        # 2. Remove all generated assistant rules (data-driven)
+        for spec in SUPPORTED_ASSISTANTS:
+            path_to_clean = target_root / spec.clean_path
+            if path_to_clean.is_file() and path_to_clean.exists():
+                path_to_clean.unlink()
+                print(f"- Removed: {path_to_clean}")
+                # Attempt to remove parent if it's an empty .github dir
+                if spec.name == 'copilot':
+                    try:
+                        if not any(path_to_clean.parent.iterdir()):
+                            path_to_clean.parent.rmdir()
+                            print(f"- Removed empty directory: {path_to_clean.parent}")
+                    except OSError:
+                        pass # Ignore if not empty or other error
+            elif path_to_clean.is_dir() and path_to_clean.exists():
+                shutil.rmtree(path_to_clean)
+                print(f"- Removed: {path_to_clean}")
             
-        # Set target directories based on provided project directory
-        target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        target_github_dir = target_root / TARGET_GITHUB_COPILOT_DIR
-        copilot_file = target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE
-        
-        # Clean rules directory
-        if target_rules_dir.exists():
-            shutil.rmtree(target_rules_dir)
-            print(f"Removed rules directory: {target_rules_dir}")
-            
-        # Clean assistant-specific directories
-        assistant_dirs_to_clean = [
-            target_root / ".cursor",
-            target_root / ".windsurf",
-            target_root / ".clinerules",
-            target_root / ".roo",
-        ]
-        for dir_path in assistant_dirs_to_clean:
-            if dir_path.exists() and dir_path.is_dir():
-                shutil.rmtree(dir_path)
-                print(f"Removed directory: {dir_path}")
-            
-        # Clean GitHub Copilot instructions
-        if copilot_file.exists():
-            copilot_file.unlink()
-            print(f"Removed GitHub Copilot instructions: {copilot_file}")
-            # Attempt to remove .github directory if it's empty
-            try:
-                if target_github_dir.is_dir() and not any(target_github_dir.iterdir()):
-                    target_github_dir.rmdir()
-                    print(f"Removed empty directory: {target_github_dir}")
-            except Exception as e:
-                print(f"Info: Could not remove directory '{target_github_dir}' or it wasn't empty: {e}")
-            
-        print("Rules cleaned successfully.")
+        print("\nRule cleaning complete.")
         return 0
 
     def clean_all(self, project_dir: Optional[str] = None) -> int:
-        """
-        Clean all rulebook-ai files from a target project directory.
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
         
-        Args:
-            project_dir: Target project directory. If None, uses current project root.
-            
-        Returns:
-            int: Return code (0 for success, non-zero for error)
-        """
-        if project_dir is not None:
-            target_root = Path(project_dir).absolute()
-        else:
-            target_root = self.project_root
-            
-        # Set target directories based on provided project directory
-        target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        target_memory_dir = target_root / TARGET_MEMORY_BANK_DIR
-        target_tools_dir = target_root / TARGET_TOOLS_DIR
-        target_github_dir = target_root / TARGET_GITHUB_COPILOT_DIR
-        copilot_file = target_github_dir / TARGET_COPILOT_INSTRUCTIONS_FILE
-        env_example_file = target_root / SOURCE_ENV_EXAMPLE_FILE
-        requirements_file = target_root / SOURCE_REQUIREMENTS_TXT_FILE
+        # 1. Run clean_rules first
+        self.clean_rules(str(target_root))
         
-        # Clean all directories
-        cleaned_count = 0
+        # 2. Remove the remaining framework directories and files
+        print("\nCleaning all remaining framework components...")
+        for item in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR, SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]:
+            item_path = target_root / item
+            if item_path.is_file() and item_path.exists():
+                item_path.unlink()
+                print(f"- Removed: {item_path}")
+            elif item_path.is_dir() and item_path.exists():
+                shutil.rmtree(item_path)
+                print(f"- Removed: {item_path}")
         
-        items_to_remove = [
-            target_rules_dir, target_memory_dir, target_tools_dir,
-            target_root / ".cursor",
-            target_root / ".windsurf",
-            target_root / ".clinerules",
-            target_root / ".roo",
-            target_github_dir, # Remove the whole .github dir
-            env_example_file, requirements_file
-        ]
-
-        for item_path in items_to_remove:
-            if not item_path.exists():
-                continue
-            try:
-                if item_path.is_file():
-                    item_path.unlink()
-                    print(f"Removed file: {item_path}")
-                    cleaned_count += 1
-                elif item_path.is_dir():
-                    shutil.rmtree(item_path)
-                    print(f"Removed directory: {item_path}")
-                    cleaned_count += 1
-            except Exception as e:
-                print(f"Error removing '{item_path}': {e}")
-            
-        if cleaned_count == 0:
-            print("No rulebook-ai files found to clean.")
-        else:
-            print("All rulebook-ai files cleaned successfully.")
-            
+        print("\nFull cleaning complete.")
         return 0
 
-    def list_rules(self) -> List[str]:
-        """
-        List all available rule sets.
-        
-        Returns:
-            List of available rule set names
-        """
-        if not self.source_rules_dir.exists():
+    def list_rules(self) -> None:
+        if not self.source_rules_dir.is_dir():
             print(f"Error: Rules directory {self.source_rules_dir} not found.")
-            return []
-            
-        rule_sets = [
-            p.name for p in self.source_rules_dir.iterdir() 
-            if p.is_dir() and not p.name.startswith('.')
-        ]
-        
-        return sorted(rule_sets)
+            return
+        print("Available rule sets:")
+        for p in sorted([p.name for p in self.source_rules_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
+            print(f"  - {p}")

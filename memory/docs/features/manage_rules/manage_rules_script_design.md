@@ -23,18 +23,18 @@ This document outlines the design for a new Python script, `src/manage_rules.py`
 
 **4. Specification: `manage_rules.py` Commands**
 
-*   **`install <target_repo_path> [--rule-set <name>]`**
+*   **`install <target_repo_path> [--rule-set <name>] [--cursor] [--cline] [...] [--all]`**
     *   **Action:**
         1.  Copies the specified rule set (default: `light-spec`) from the Source Repository's `rule_sets/<rule-set-name>` directory into `<target_repo_path>/project_rules/`. If `project_rules/` already exists, it will be overwritten or cleared first to ensure a fresh copy of the chosen rule set. *(A warning should be issued if overwriting)*.
         2.  Copies the content of the Source Repository's `memory_starters/` directory into `<target_repo_path>/memory/`. If `memory/` exists, new starter files from the source will be copied if they don't exist in the target; existing files in the target `memory/` will **not** be overwritten.
         3.  Copies the content of the Source Repository's `tool_starters/` directory into `<target_repo_path>/tools/`. If `tools/` exists, new starter files/subdirectories from the source will be copied if they don't exist in the target; existing files/subdirectories in the target `tools/` will **not** be overwritten.
         4.  Copies `env.example` and `requirements.txt` from the Source Repository's root to `<target_repo_path>/env.example` and `<target_repo_path>/requirements.txt`. If `env.example` / `requirements.txt` already exists in the target, it will **not** be overwritten.
-        5.  Immediately runs the `sync` logic (using `<target_repo_path>/project_rules/` as the source).
+        5.  Immediately runs the `sync` logic for the selected assistants. **If no assistant flags are provided, it defaults to generating rules for ALL supported assistants.**
     *   **Output:** Prints progress messages. Suggests adding generated platform rule directories/files (including `.github/copilot-instructions.md`) to `.gitignore`. Recommends committing `memory/`, `tools/`, `env.example`, and `requirements.txt` to version control. Informs the user that `project_rules/` will be managed by the script (and removed by `clean-rules`).
 
-*   **`sync <target_repo_path>`**
-    *   **Action:** Reads rules from `<target_repo_path>/project_rules/`. Deletes any existing Target Platform Rules directories/files (including `.github/copilot-instructions.md`). Regenerates the Target Platform Rules for all supported platforms.
-    *   **Use Case:** Run after manually modifying files within `<target_repo_path>/project_rules/` (if advanced customization is done there, knowing `clean-rules` will remove them) or after `install` to ensure rules are up-to-date.
+*   **`sync <target_repo_path> [--cursor] [--cline] [...] [--all]`**
+    *   **Action:** Reads rules from `<target_repo_path>/project_rules/`. For each selected assistant, it deletes the existing Target Platform Rules and regenerates them. **If no assistant flags are provided, it defaults to syncing ALL supported assistants.**
+    *   **Use Case:** Run after manually modifying files within `<target_repo_path>/project_rules/` to update the generated rules for one, some, or all assistants.
     *   **Output:** Prints progress messages.
 
 *   **`clean-rules <target_repo_path>`**

@@ -6,7 +6,7 @@ It serves as the single source of truth for assistant configurations.
 """
 
 import dataclasses
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 @dataclasses.dataclass(frozen=True)
 class AssistantSpec:
@@ -28,15 +28,14 @@ class AssistantSpec:
     # Does the assistant recursively search subdirectories for rules?
     supports_subdirectories: bool
 
-    # --- File Constraints ---
+    # The top-level path to remove during a 'clean' operation.
+    clean_path: str
+
+    # --- File Constraints (with default values) ---
     # If not multi-file, what is the exact name of the rule file?
     filename: Optional[str] = None
     # If multi-file, what is the required extension for rule files? (None means any)
     file_extension: Optional[str] = None
-
-    # --- Tooling Metadata ---
-    # The top-level path to remove during a 'clean' operation.
-    clean_path: str
 
 
 # The single source of truth for all supported AI assistants
@@ -64,7 +63,7 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Cline',
         rule_path='.clinerules',
         is_multi_file=True,
-        supports_subdirectories=True,
+        supports_subdirectories=False,
         file_extension=None,  # Extension is removed by our generator
         clean_path='.clinerules'
     ),

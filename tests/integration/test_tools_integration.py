@@ -72,8 +72,9 @@ def test_rule_manager_functionality():
     assert manager is not None
     
     # Test basic functionality
-    rules = manager.list_rules()
-    assert isinstance(rules, list)
+    # list_rules now prints to stdout and returns None, so this test is no longer valid.
+    # This functionality is tested in the CLI integration tests.
+    manager.list_rules()
     
     print("✅ RuleManager programmatic access works")
 
@@ -110,10 +111,10 @@ def test_tool_installation_workflow():
     # Initialize RuleManager
     manager = RuleManager(str(test_env_dir))
     
-    # Test that we can query available rules
+    # Test that we can query available rules (list_rules now prints to stdout)
     try:
-        rules = manager.list_rules()
-        print(f"✅ Found {len(rules)} available rule sets")
+        manager.list_rules()
+        print(f"✅ list_rules executed successfully")
     except Exception as e:
         print(f"ℹ️  Rule listing test: {e}")
     

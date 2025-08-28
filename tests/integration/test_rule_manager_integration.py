@@ -62,8 +62,7 @@ def test_install(rule_manager, temp_dir):
     
     result = rule_manager.install(
         rule_set="test-set", 
-        project_dir=str(target_dir),
-        include_copilot=True
+        project_dir=str(target_dir)
     )
     
     # Verify the end-to-end installation process worked
