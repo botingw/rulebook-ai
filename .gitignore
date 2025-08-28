@@ -98,6 +98,7 @@ dmypy.json
 .roo/
 .windsurfrules
 .windsurf/rules/
+GEMINI.md
 # GitHub Copilot but allow workflows
 .github/copilot-instructions.md
 .idx/
