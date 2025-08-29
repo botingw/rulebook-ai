@@ -40,3 +40,15 @@ This plan is a historical record of the tasks completed, based on the final desi
 | **3.3** | Fix all failing integration tests in `test_cli_commands.py` and other files to align with the new CLI behavior. | P0         | Completed   | 3.2               |
 | **3.4** | Rewrite the unit tests in `test_rule_manager_unit.py` to validate the new core generation strategies. | P0         | Completed   | 3.3               |
 | **3.5** | Update the public design spec (`manage_rules_script_design.md`) to include the new assistant-selection features. | P1         | Completed   | 3.4               |
+
+### Enhancement: Additional Assistant Support
+
+**Description:** Post-refactor improvements that expand assistant coverage and strengthen file cleanup.
+
+| Task ID | Description | Importance | Status | Dependencies |
+|:--------|:------------|:-----------|:-------|:-------------|
+| **E1** | Define Claude Code, Codex CLI, and Gemini CLI assistants with dedicated rule file paths. | P1 | Completed | 3.5 |
+| **E2** | Handle cleanup of assistant files and empty parent directories generically. | P1 | Completed | E1 |
+| **E3** | Extend CLI and integration tests for new assistant flags. | P1 | Completed | E1 |
+| **E4** | Document new assistant support in design spec, CLI flows, README, and task plan. | P1 | Completed | E3 |
+| **E5** | Add `bug-report` CLI command linking to the issue tracker. | P3 | Completed | - |
