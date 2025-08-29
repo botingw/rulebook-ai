@@ -234,14 +234,14 @@ class RuleManager:
             if path_to_clean.is_file() and path_to_clean.exists():
                 path_to_clean.unlink()
                 print(f"- Removed: {path_to_clean}")
-                # Attempt to remove parent if it's an empty .github dir
-                if spec.name == 'copilot':
-                    try:
-                        if not any(path_to_clean.parent.iterdir()):
-                            path_to_clean.parent.rmdir()
-                            print(f"- Removed empty directory: {path_to_clean.parent}")
-                    except OSError:
-                        pass # Ignore if not empty or other error
+                # Attempt to remove empty parent directories (e.g., .github, .gemini)
+                try:
+                    parent = path_to_clean.parent
+                    if parent != target_root and not any(parent.iterdir()):
+                        parent.rmdir()
+                        print(f"- Removed empty directory: {parent}")
+                except OSError:
+                    pass  # Ignore if not empty or other error
             elif path_to_clean.is_dir() and path_to_clean.exists():
                 shutil.rmtree(path_to_clean)
                 print(f"- Removed: {path_to_clean}")

@@ -40,3 +40,12 @@ This plan is a historical record of the tasks completed, based on the final desi
 | **3.3** | Fix all failing integration tests in `test_cli_commands.py` and other files to align with the new CLI behavior. | P0         | Completed   | 3.2               |
 | **3.4** | Rewrite the unit tests in `test_rule_manager_unit.py` to validate the new core generation strategies. | P0         | Completed   | 3.3               |
 | **3.5** | Update the public design spec (`manage_rules_script_design.md`) to include the new assistant-selection features. | P1         | Completed   | 3.4               |
+
+### Post-Refactor Feature Addition
+
+**Description:** Subsequent work added support for more AI coding assistants beyond the original refactor phases.
+
+| Task ID | Description | Importance | Status | Dependencies |
+|:--------|:------------|:-----------|:-------|:-------------|
+| **PR-1** | Introduce Claude Code, Codex CLI, and Gemini CLI to `SUPPORTED_ASSISTANTS`, CLI flags, and cleanup logic. | P1 | Completed | - |
+| **PR-2** | Update design docs, README, and tests to document and validate the new assistant support. | P1 | Completed | PR-1 |
