@@ -43,11 +43,16 @@ def test_install_default_rule_set(script_runner, tmp_path):
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
     gh_copilot_instructions_file = tmp_target_repo_root / ".github" / "copilot-instructions.md"
     assert gh_copilot_instructions_file.is_file()
+    assert (tmp_target_repo_root / "CLAUDE.md").is_file()
+    assert (tmp_target_repo_root / "AGENTS.md").is_file()
+    assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
 
     # Check content of a generated file to ensure it's from the correct source rules
     expected_content = "Meta-Rules for AI Assistant Interaction"
     gh_copilot_content = gh_copilot_instructions_file.read_text()
     assert expected_content in gh_copilot_content
+    claude_content = (tmp_target_repo_root / "CLAUDE.md").read_text()
+    assert expected_content in claude_content
 
     # 6. Check for .env.example and requirements.txt
     assert (tmp_target_repo_root / ".env.example").is_file()
@@ -68,6 +73,9 @@ def test_install_specific_rule_set(script_runner, tmp_path):
 
     gh_copilot_content = (tmp_target_repo_root / ".github" / "copilot-instructions.md").read_text()
     assert "Meta-Rules for AI Assistant Interaction" in gh_copilot_content
+    assert (tmp_target_repo_root / "CLAUDE.md").is_file()
+    assert (tmp_target_repo_root / "AGENTS.md").is_file()
+    assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
 
 
 def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
@@ -91,6 +99,12 @@ def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
     gh_copilot_file_path = tmp_target_repo_root / ".github" / "copilot-instructions.md"
     assert gh_copilot_file_path.is_file()
     assert modified_content in gh_copilot_file_path.read_text()
+    claude_path = tmp_target_repo_root / "CLAUDE.md"
+    codex_path = tmp_target_repo_root / "AGENTS.md"
+    gemini_path = tmp_target_repo_root / ".gemini" / "GEMINI.md"
+    for path in [claude_path, codex_path, gemini_path]:
+        assert path.is_file()
+        assert modified_content in path.read_text()
 
 
 def test_clean_rules_removes_rules_and_generated_keeps_memory_tools(script_runner, tmp_path):
@@ -108,6 +122,9 @@ def test_clean_rules_removes_rules_and_generated_keeps_memory_tools(script_runne
     assert not (tmp_target_repo_root / ".clinerules").exists()
     assert not (tmp_target_repo_root / ".roo").exists()
     assert not (tmp_target_repo_root / ".github").exists()
+    assert not (tmp_target_repo_root / "CLAUDE.md").exists()
+    assert not (tmp_target_repo_root / "AGENTS.md").exists()
+    assert not (tmp_target_repo_root / ".gemini").exists()
 
     assert (tmp_target_repo_root / TARGET_MEMORY_BANK_DIR).is_dir()
     assert (tmp_target_repo_root / TARGET_TOOLS_DIR).is_dir()
@@ -131,6 +148,9 @@ def test_clean_all_with_confirmation_yes(script_runner, tmp_path):
     assert not (tmp_target_repo_root / ".roo").exists()
     assert not (tmp_target_repo_root / ".windsurf").exists()
     assert not (tmp_target_repo_root / ".github").exists()
+    assert not (tmp_target_repo_root / "CLAUDE.md").exists()
+    assert not (tmp_target_repo_root / "AGENTS.md").exists()
+    assert not (tmp_target_repo_root / ".gemini").exists()
     assert not (tmp_target_repo_root / ".env.example").exists()
     assert not (tmp_target_repo_root / "requirements.txt").exists()
 
@@ -149,6 +169,9 @@ def test_clean_all_with_confirmation_no(script_runner, tmp_path):
     assert (tmp_target_repo_root / ".env.example").is_file()
     assert (tmp_target_repo_root / "requirements.txt").is_file()
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
+    assert (tmp_target_repo_root / "CLAUDE.md").is_file()
+    assert (tmp_target_repo_root / "AGENTS.md").is_file()
+    assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
     assert "Clean-all operation cancelled by user." in result.stdout
 
 
@@ -179,7 +202,10 @@ def test_install_with_specific_assistant_flags(script_runner, tmp_path):
     assert not (tmp_target_repo_root / ".cursor").exists()
     assert not (tmp_target_repo_root / ".clinerules").exists()
     assert not (tmp_target_repo_root / ".roo").exists()
-    
+    assert not (tmp_target_repo_root / ".github").exists()
+    assert not (tmp_target_repo_root / "CLAUDE.md").exists()
+    assert not (tmp_target_repo_root / "AGENTS.md").exists()
+    assert not (tmp_target_repo_root / ".gemini").exists()
     # Should still create generic directories
     assert (tmp_target_repo_root / TARGET_PROJECT_RULES_DIR).is_dir()
     assert (tmp_target_repo_root / TARGET_MEMORY_BANK_DIR).is_dir()
@@ -199,6 +225,10 @@ def test_install_with_all_assistants_flag(script_runner, tmp_path):
     assert (tmp_target_repo_root / ".clinerules").is_dir()
     assert (tmp_target_repo_root / ".roo" / "rules").is_dir()
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
+    assert (tmp_target_repo_root / ".github" / "copilot-instructions.md").is_file()
+    assert (tmp_target_repo_root / "CLAUDE.md").is_file()
+    assert (tmp_target_repo_root / "AGENTS.md").is_file()
+    assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
 
 
 def test_sync_with_specific_assistant_flags(script_runner, tmp_path):
@@ -250,3 +280,6 @@ def test_sync_detects_existing_assistants(script_runner, tmp_path):
     synced_cursor_rule_file = tmp_target_repo_root / ".cursor" / "rules" / "01-meta-rules.mdc"
     assert synced_cursor_rule_file.is_file()
     assert modified_content in synced_cursor_rule_file.read_text()
+    claude_file = tmp_target_repo_root / "CLAUDE.md"
+    assert claude_file.is_file()
+    assert modified_content in claude_file.read_text()

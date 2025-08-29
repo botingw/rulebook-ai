@@ -84,6 +84,33 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         filename='copilot-instructions.md',
         clean_path='.github/copilot-instructions.md'
     ),
+    AssistantSpec(
+        name='claude-code',
+        display_name='Claude Code',
+        rule_path='.',
+        is_multi_file=False,
+        supports_subdirectories=False,
+        filename='CLAUDE.md',
+        clean_path='CLAUDE.md'
+    ),
+    AssistantSpec(
+        name='codex-cli',
+        display_name='Codex CLI',
+        rule_path='.',
+        is_multi_file=False,
+        supports_subdirectories=False,
+        filename='AGENTS.md',
+        clean_path='AGENTS.md'
+    ),
+    AssistantSpec(
+        name='gemini-cli',
+        display_name='Gemini CLI',
+        rule_path='.gemini',
+        is_multi_file=False,
+        supports_subdirectories=False,
+        filename='GEMINI.md',
+        clean_path='.gemini/GEMINI.md'
+    ),
 ]
 
 # For quick lookups
