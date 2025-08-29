@@ -52,3 +52,9 @@ This change will make adding a new assistant a simple matter of adding a new ent
     *   The `handle_install` and `handle_sync` functions will be simplified to single lines.
     *   They will pass the `assistants` list, generated directly by `argparse`, to the corresponding `RuleManager` method.
     *   If no assistant flags are provided by the user, the list will be `None`, and the `RuleManager` will correctly interpret this as a request to install/sync for all assistants (the default behavior).
+
+### Enhancement: Additional Assistant Support (Completed)
+
+Following the refactor, the specification was extended to include Claude Code, Codex CLI, and Gemini CLI assistants with their own rule file paths and generalized cleanup of assistant artifacts. These additions build on the refactoring work without belonging to Phases 1–2.
+
+An additional enhancement introduced a `bug-report` CLI command that links users to the project's issue tracker for submitting problems.

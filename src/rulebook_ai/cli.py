@@ -51,6 +51,7 @@ def create_parser() -> argparse.ArgumentParser:
     # --- Utility Commands ---
     subparsers.add_parser("list-rules", help="List available rule sets.")
     subparsers.add_parser("doctor", help="Check environment and setup for issues.")
+    subparsers.add_parser("bug-report", help="Open the project issue tracker to report a bug.")
 
     return parser
 
@@ -97,6 +98,9 @@ def handle_command(args: argparse.Namespace) -> int:
     elif command == "doctor":
         print("Doctor command not yet implemented in this version.")
         return 0
+
+    elif command == "bug-report":
+        return rule_manager.report_bug()
 
     return 1
 

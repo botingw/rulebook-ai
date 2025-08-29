@@ -10,6 +10,7 @@ import shutil
 import re
 from pathlib import Path
 from typing import List, Optional
+import webbrowser
 
 from .assistants import AssistantSpec, SUPPORTED_ASSISTANTS, ASSISTANT_MAP
 
@@ -26,6 +27,8 @@ DEFAULT_RULE_SET = "light-spec"
 
 SOURCE_ENV_EXAMPLE_FILE = ".env.example"
 SOURCE_REQUIREMENTS_TXT_FILE = "requirements.txt"
+
+BUG_REPORT_URL = "https://github.com/botingw/rulebook-ai/issues"
 
 
 class RuleManager:
@@ -276,3 +279,12 @@ class RuleManager:
         print("Available rule sets:")
         for p in sorted([p.name for p in self.source_rules_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
             print(f"  - {p}")
+
+    def report_bug(self) -> int:
+        """Provide the project issue tracker URL for reporting bugs."""
+        print(f"To report a bug, please visit {BUG_REPORT_URL}")
+        try:
+            webbrowser.open(BUG_REPORT_URL)
+        except Exception:
+            pass
+        return 0

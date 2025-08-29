@@ -60,6 +60,11 @@ This document outlines the design for a new Python script, `src/manage_rules.py`
     *   **Use Case:** Allows users to quickly see which rule sets are available for installation without needing to manually inspect the `rule_sets/` directory in the source framework.
     *   **Output:** Prints a header like "Available rule sets:" followed by the name of each discovered rule set, one per line. If no rule sets are found, it prints an appropriate message.
 
+*   **`bug-report`**
+    *   **Action:** Prints the GitHub issue tracker URL and attempts to open it in the user's default browser.
+    *   **Use Case:** Provides a quick way for users to report problems with the tool.
+    *   **Output:** Shows the issue tracker link.
+
 **5. Implementation Notes**
 
 *   Use Python's `argparse` library.
