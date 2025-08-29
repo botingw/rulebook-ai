@@ -283,3 +283,10 @@ def test_sync_detects_existing_assistants(script_runner, tmp_path):
     claude_file = tmp_target_repo_root / "CLAUDE.md"
     assert claude_file.is_file()
     assert modified_content in claude_file.read_text()
+
+
+def test_bug_report_command(script_runner):
+    """Verify the bug-report command opens the issue tracker URL."""
+    result = script_runner(["bug-report"])
+    assert result.returncode == 0, f"Command failed. STDERR:\n{result.stderr}"
+    assert "https://github.com/botingw/rulebook-ai/issues" in result.stdout
