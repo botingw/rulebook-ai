@@ -85,11 +85,11 @@ These examples illustrate how providing structured rules and a persistent memory
 
 ## Quickstart: Using this Template for AI Coding
 
-This template repository serves as the central source for master rule sets. To use these rules in your own projects, you'll utilize the `src/manage_rules.py` script provided within *this* repository.
+This template repository serves as the central source for master rule sets. To use these rules in your own projects, you'll utilize the `src/rulebook_ai/cli.py` script (or rulebook-ai command with 'pip install -e .') provided within *this* repository.
 
 **Core Concepts:**
 
-*   **Source Template Repo:** This repository, containing master rule sets (in `rule_sets/`), master memory bank starter documents (in `memory_starters/`), master tool starters (in `tool_starters/`), and the `manage_rules.py` script.
+*   **Source Template Repo:** This repository, containing master rule sets (in `rule_sets/`), master memory bank starter documents (in `memory_starters/`), master tool starters (in `tool_starters/`), and the `src/rulebook_ai/cli.py` script (or rulebook-ai command with 'pip install -e .').
 *   **Target Repo:** Your project repository (e.g., `~/git/my_cool_project`) where you want to use the rules.
 *   **Target Project Rules Directory:** A folder named **`project_rules/`** created *inside your Target Repo* by the `install` command. It holds the specific rule files for *your* project, copied from a chosen set in the Source Template Repo's `rule_sets/` directory. This folder is used by the `sync` command and **removed by the `clean-rules` command**. It is managed by the script, though you can version control it for manual backups if desired.
 *   **Target Memory Bank Directory:** A folder named **`memory/`** created *inside your Target Repo* during installation. It's populated with project-specific memory documents from the Source Template Repo's `memory_starters/` (new starter files are copied if they don't exist; existing files are **not** overwritten). **This folder should be version controlled in your Target Repo.**
@@ -105,7 +105,7 @@ This template repository serves as the central source for master rule sets. To u
     *   Use the `list-rules` command to see which rule sets are available for installation from this Source Template Repo.
     *   **Command:**
         ```bash
-        python src/manage_rules.py list-rules
+        rulebook-ai list-rules
         ```
     *   **Action:** Scans the `rule_sets/` directory in this repository and lists all available rule set names.
 
@@ -114,11 +114,11 @@ This template repository serves as the central source for master rule sets. To u
         * **NOTE** for windsurf user, after install rules, activate rules in GUI (see this [bug fix](https://github.com/botingw/rulebook-ai/issues/13#issuecomment-2911331241))
     *   **Command:**
         ```bash
-        # Syntax: python src/manage_rules.py install <path_to_your_target_repo> [--rule-set <rule_set_name>]
+        # Syntax: rulebook-ai install <path_to_your_target_repo> [--rule-set <rule_set_name>]
         # Example (using default 'light-spec' rule set):
-        python src/manage_rules.py install ~/git/my_cool_project
+        rulebook-ai install ~/git/my_cool_project
         # Example (specifying a rule set):
-        python src/manage_rules.py install ~/git/my_cool_project --rule-set heavy-spec
+        rulebook-ai install ~/git/my_cool_project --rule-set heavy-spec
         ```
     *   **Action:**
         *   Copies the specified rule set (default: `light-spec`) from this repo's `rule_sets/<rule_set_name>/` to `~/git/my_cool_project/project_rules/`. (Overwrites `project_rules/` if it exists, with a warning).
@@ -175,9 +175,9 @@ Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude C
     *   To remove the generated Target Platform Rules and the `project_rules/` directory from your target project, while keeping your customized `memory/` and `tools/` directories intact, use the `clean-rules` command.
     *   **Command:**
         ```bash
-        # Syntax: python src/manage_rules.py clean-rules <path_to_your_target_repo>
+        # Syntax: rulebook-ai clean-rules <path_to_your_target_repo>
         # Example:
-        python src/manage_rules.py clean-rules ~/git/my_cool_project
+        rulebook-ai clean-rules ~/git/my_cool_project
         ```
     *   **Action:** Removes `~/git/my_cool_project/project_rules/` and the generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`). The `memory/` and `tools/` directories are **not** affected.
 
@@ -186,9 +186,9 @@ Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude C
     *   **Important:** This command will prompt for confirmation because it removes `memory/`, `tools/`, `env.example`, and `requirements.txt`, which may contain your project-specific customizations.
     *   **Command:**
         ```bash
-        # Syntax: python src/manage_rules.py clean-all <path_to_your_target_repo>
+        # Syntax: rulebook-ai clean-all <path_to_your_target_repo>
         # Example:
-        python src/manage_rules.py clean-all ~/git/my_cool_project
+        rulebook-ai clean-all ~/git/my_cool_project
         ```
     *   **Action:** After confirmation, removes `project_rules/`, `memory/`, `tools/`, `env.example`, `requirements.txt`, and all generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`) from `~/git/my_cool_project/`.
 
