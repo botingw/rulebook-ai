@@ -52,3 +52,15 @@ This plan is a historical record of the tasks completed, based on the final desi
 | **E3** | Extend CLI and integration tests for new assistant flags. | P1 | Completed | E1 |
 | **E4** | Document new assistant support in design spec, CLI flows, README, and task plan. | P1 | Completed | E3 |
 | **E5** | Add `bug-report` CLI command linking to the issue tracker. | P3 | Completed | - |
+
+### Enhancement: Kilo Code and Warp Support
+
+**Description:** Added support for the Kilo Code and Warp assistants, which required refactoring the generation logic to handle mode-based subdirectories.
+
+| Task ID | Description | Importance | Status | Dependencies |
+|:--------|:------------|:-----------|:-------|:-------------|
+| **E6** | Add `kilocode` and `warp` to `assistants.py` and introduce the `has_modes` flag to `AssistantSpec`. | P1 | Completed | E4 |
+| **E7** | Refactor `RuleManager._generate_for_assistant` to use the `has_modes` flag for mode-based generation. | P1 | Completed | E6 |
+| **E8** | Update unit and integration tests to verify the new mode-based logic and assistant support. | P1 | Completed | E7 |
+| **E9** | Enhance integration tests to check for multiple sub-modes and files within them. | P2 | Completed | E8 |
+| **E10** | Update design documents to reflect Kilo Code and Warp support. | P2 | Completed | E7 |

@@ -127,18 +127,36 @@ class RuleManager:
 
     def _generate_for_assistant(self, spec: AssistantSpec, source_dir: Path, target_root: Path):
         target_path = target_root / spec.rule_path
-        
+
         if not spec.is_multi_file:
             dest_file = target_path / spec.filename
             self._strategy_concatenate_files(source_dir, dest_file)
             print(f"  -> Generated {spec.display_name} instructions at {dest_file}")
             return
 
+        if spec.has_modes:
+            total_files = 0
+            for source_sub_dir in source_dir.iterdir():
+                if not source_sub_dir.is_dir() or source_sub_dir.name.startswith('.'):
+                    continue
+
+                mode_name = re.sub(r"^\d+-", "", source_sub_dir.name)
+                target_mode_dir = target_path / mode_name
+                
+                count = self._strategy_preserve_hierarchy(source_sub_dir, target_mode_dir)
+                if count > 0:
+                    print(f"  -> Generated {count} {spec.display_name} '{mode_name}' rules in {target_mode_dir}")
+                    total_files += count
+            
+            if total_files == 0:
+                print(f"  -> No rules found to generate for {spec.display_name}")
+            return
+
         count = 0
-        if not spec.supports_subdirectories:
-            count = self._strategy_flatten_and_number(source_dir, target_path, spec.file_extension)
-        else:
+        if spec.supports_subdirectories:
             count = self._strategy_preserve_hierarchy(source_dir, target_path)
+        else:
+            count = self._strategy_flatten_and_number(source_dir, target_path, spec.file_extension)
         
         if count > 0:
             print(f"  -> Generated {count} {spec.display_name} rule files in {target_path}")

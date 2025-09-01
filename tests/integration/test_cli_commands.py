@@ -39,8 +39,15 @@ def test_install_default_rule_set(script_runner, tmp_path):
     # 5. Check for generated platform-specific rule directories
     assert (tmp_target_repo_root / ".cursor" / "rules").is_dir()
     assert (tmp_target_repo_root / ".clinerules").is_dir()
+    # Check mode-based assistants for multiple modes and a file within a mode
     assert (tmp_target_repo_root / ".roo" / "rules").is_dir()
+    assert (tmp_target_repo_root / ".roo" / "rules-architect").is_dir()
+    assert (tmp_target_repo_root / ".roo" / "rules" / "00-meta-rules.md").is_file()
+    assert (tmp_target_repo_root / ".kilocode" / "rules").is_dir()
+    assert (tmp_target_repo_root / ".kilocode" / "rules-architect").is_dir()
+    assert (tmp_target_repo_root / ".kilocode" / "rules" / "00-meta-rules.md").is_file()
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
+    assert (tmp_target_repo_root / "WARP.md").is_file()
     gh_copilot_instructions_file = tmp_target_repo_root / ".github" / "copilot-instructions.md"
     assert gh_copilot_instructions_file.is_file()
     assert (tmp_target_repo_root / "CLAUDE.md").is_file()
@@ -53,6 +60,9 @@ def test_install_default_rule_set(script_runner, tmp_path):
     assert expected_content in gh_copilot_content
     claude_content = (tmp_target_repo_root / "CLAUDE.md").read_text()
     assert expected_content in claude_content
+    warp_content = (tmp_target_repo_root / "WARP.md").read_text()
+    assert expected_content in warp_content
+
 
     # 6. Check for .env.example and requirements.txt
     assert (tmp_target_repo_root / ".env.example").is_file()
@@ -76,6 +86,8 @@ def test_install_specific_rule_set(script_runner, tmp_path):
     assert (tmp_target_repo_root / "CLAUDE.md").is_file()
     assert (tmp_target_repo_root / "AGENTS.md").is_file()
     assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
+    assert (tmp_target_repo_root / "WARP.md").is_file()
+    assert (tmp_target_repo_root / ".kilocode" / "rules").is_dir()
 
 
 def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
@@ -84,27 +96,49 @@ def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
     install_result = script_runner(["install", "--rule-set", "light-spec"], tmp_target_repo_root)
     assert install_result.returncode == 0, f"Setup install failed: {install_result.stderr}"
 
-    rule_to_modify = tmp_target_repo_root / TARGET_PROJECT_RULES_DIR / "01-rules" / "00-meta-rules.md"
-    assert rule_to_modify.is_file()
-    modified_content = " *** MODIFIED CONTENT FOR SYNC TEST *** "
-    rule_to_modify.write_text(modified_content)
+    # Modify a rule in the first mode ('rules')
+    rule_to_modify_1 = tmp_target_repo_root / TARGET_PROJECT_RULES_DIR / "01-rules" / "00-meta-rules.md"
+    assert rule_to_modify_1.is_file()
+    modified_content_1 = " *** MODIFIED CONTENT 1 FOR SYNC TEST *** "
+    rule_to_modify_1.write_text(modified_content_1)
 
-    synced_cursor_rule_file = tmp_target_repo_root / ".cursor" / "rules" / "01-meta-rules.mdc"
-    assert synced_cursor_rule_file.is_file() # debug
+    # Modify a rule in the second mode ('rules-architect')
+    rule_to_modify_2 = tmp_target_repo_root / TARGET_PROJECT_RULES_DIR / "02-rules-architect" / "01-plan_v1.md"
+    assert rule_to_modify_2.is_file()
+    modified_content_2 = " *** MODIFIED CONTENT 2 FOR SYNC TEST *** "
+    rule_to_modify_2.write_text(modified_content_2)
 
     result = script_runner(["sync"], tmp_target_repo_root)
     assert result.returncode == 0, f"Sync script failed. STDERR:\n{result.stderr}"
     
-    assert synced_cursor_rule_file.is_file()
+    # --- Assertions for concatenated files ---
     gh_copilot_file_path = tmp_target_repo_root / ".github" / "copilot-instructions.md"
-    assert gh_copilot_file_path.is_file()
-    assert modified_content in gh_copilot_file_path.read_text()
     claude_path = tmp_target_repo_root / "CLAUDE.md"
     codex_path = tmp_target_repo_root / "AGENTS.md"
     gemini_path = tmp_target_repo_root / ".gemini" / "GEMINI.md"
-    for path in [claude_path, codex_path, gemini_path]:
+    warp_path = tmp_target_repo_root / "WARP.md"
+    
+    for path in [gh_copilot_file_path, claude_path, codex_path, gemini_path, warp_path]:
         assert path.is_file()
-        assert modified_content in path.read_text()
+        content = path.read_text()
+        assert modified_content_1 in content
+        assert modified_content_2 in content
+
+    # --- Assertions for first modified rule in mode-based assistants ---
+    roo_path_1 = tmp_target_repo_root / ".roo" / "rules" / "00-meta-rules.md"
+    kilocode_path_1 = tmp_target_repo_root / ".kilocode" / "rules" / "00-meta-rules.md"
+    assert roo_path_1.is_file()
+    assert kilocode_path_1.is_file()
+    assert modified_content_1 in roo_path_1.read_text()
+    assert modified_content_1 in kilocode_path_1.read_text()
+
+    # --- Assertions for second modified rule in mode-based assistants ---
+    roo_path_2 = tmp_target_repo_root / ".roo" / "rules-architect" / "01-plan_v1.md"
+    kilocode_path_2 = tmp_target_repo_root / ".kilocode" / "rules-architect" / "01-plan_v1.md"
+    assert roo_path_2.is_file()
+    assert kilocode_path_2.is_file()
+    assert modified_content_2 in roo_path_2.read_text()
+    assert modified_content_2 in kilocode_path_2.read_text()
 
 
 def test_clean_rules_removes_rules_and_generated_keeps_memory_tools(script_runner, tmp_path):
@@ -121,6 +155,8 @@ def test_clean_rules_removes_rules_and_generated_keeps_memory_tools(script_runne
     assert not (tmp_target_repo_root / ".windsurf").exists()
     assert not (tmp_target_repo_root / ".clinerules").exists()
     assert not (tmp_target_repo_root / ".roo").exists()
+    assert not (tmp_target_repo_root / ".kilocode").exists()
+    assert not (tmp_target_repo_root / "WARP.md").exists()
     assert not (tmp_target_repo_root / ".github").exists()
     assert not (tmp_target_repo_root / "CLAUDE.md").exists()
     assert not (tmp_target_repo_root / "AGENTS.md").exists()
@@ -146,6 +182,8 @@ def test_clean_all_with_confirmation_yes(script_runner, tmp_path):
     assert not (tmp_target_repo_root / ".cursor").exists()
     assert not (tmp_target_repo_root / ".clinerules").exists()
     assert not (tmp_target_repo_root / ".roo").exists()
+    assert not (tmp_target_repo_root / ".kilocode").exists()
+    assert not (tmp_target_repo_root / "WARP.md").exists()
     assert not (tmp_target_repo_root / ".windsurf").exists()
     assert not (tmp_target_repo_root / ".github").exists()
     assert not (tmp_target_repo_root / "CLAUDE.md").exists()
@@ -172,6 +210,7 @@ def test_clean_all_with_confirmation_no(script_runner, tmp_path):
     assert (tmp_target_repo_root / "CLAUDE.md").is_file()
     assert (tmp_target_repo_root / "AGENTS.md").is_file()
     assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
+    assert (tmp_target_repo_root / "WARP.md").is_file()
     assert "Clean-all operation cancelled by user." in result.stdout
 
 
@@ -202,6 +241,8 @@ def test_install_with_specific_assistant_flags(script_runner, tmp_path):
     assert not (tmp_target_repo_root / ".cursor").exists()
     assert not (tmp_target_repo_root / ".clinerules").exists()
     assert not (tmp_target_repo_root / ".roo").exists()
+    assert not (tmp_target_repo_root / ".kilocode").exists()
+    assert not (tmp_target_repo_root / "WARP.md").exists()
     assert not (tmp_target_repo_root / ".github").exists()
     assert not (tmp_target_repo_root / "CLAUDE.md").exists()
     assert not (tmp_target_repo_root / "AGENTS.md").exists()
@@ -224,7 +265,9 @@ def test_install_with_all_assistants_flag(script_runner, tmp_path):
     assert (tmp_target_repo_root / ".cursor" / "rules").is_dir()
     assert (tmp_target_repo_root / ".clinerules").is_dir()
     assert (tmp_target_repo_root / ".roo" / "rules").is_dir()
+    assert (tmp_target_repo_root / ".kilocode" / "rules").is_dir()
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
+    assert (tmp_target_repo_root / "WARP.md").is_file()
     assert (tmp_target_repo_root / ".github" / "copilot-instructions.md").is_file()
     assert (tmp_target_repo_root / "CLAUDE.md").is_file()
     assert (tmp_target_repo_root / "AGENTS.md").is_file()

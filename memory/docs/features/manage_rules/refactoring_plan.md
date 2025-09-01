@@ -58,3 +58,5 @@ This change will make adding a new assistant a simple matter of adding a new ent
 Following the refactor, the specification was extended to include Claude Code, Codex CLI, and Gemini CLI assistants with their own rule file paths and generalized cleanup of assistant artifacts. These additions build on the refactoring work without belonging to Phases 1–2.
 
 An additional enhancement introduced a `bug-report` CLI command that links users to the project's issue tracker for submitting problems.
+
+A subsequent enhancement introduced support for mode-based assistants (Kilo Code, Roo Code), which required adding a `has_modes` flag to the `AssistantSpec` and extending the `RuleManager` engine. This demonstrated the extensibility of the refactored architecture.

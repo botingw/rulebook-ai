@@ -93,3 +93,61 @@ def test_strategy_concatenate_files(rule_manager, tmp_path):
     assert "---" in content
     assert "# Rule: 02-b.txt" in content
     assert "Content B" in content
+
+def test_copy_tree_non_destructive(rule_manager, tmp_path):
+    """
+    Verify that the non-destructive copy only adds new files and does not
+    overwrite existing ones.
+    """
+    source_dir = tmp_path / "source"
+    dest_dir = tmp_path / "dest"
+    source_dir.mkdir()
+    dest_dir.mkdir()
+
+    # Source files
+    (source_dir / "new_file.txt").write_text("New")
+    (source_dir / "existing_file.txt").write_text("Source Version")
+
+    # Destination files
+    (dest_dir / "existing_file.txt").write_text("Original Version")
+    (dest_dir / "other_file.txt").write_text("Other")
+
+    # Execute the copy
+    count = rule_manager._copy_tree_non_destructive(source_dir, dest_dir)
+    assert count == 1 # Only one new file should have been copied
+
+    # Verify destination contents
+    assert (dest_dir / "new_file.txt").is_file()
+    assert (dest_dir / "new_file.txt").read_text() == "New"
+    
+    assert (dest_dir / "existing_file.txt").read_text() == "Original Version"
+    assert (dest_dir / "other_file.txt").read_text() == "Other"
+
+def test_generate_for_assistant_mode_based(rule_manager, tmp_path):
+    """
+    Verify that the generation logic for mode-based assistants (Roo, Kilo)
+    correctly creates mode-specific subdirectories.
+    """
+    source_dir = tmp_path / "project_rules"
+    source_dir.mkdir()
+    (source_dir / "01-rules").mkdir()
+    (source_dir / "01-rules" / "general.md").write_text("General Rule")
+    (source_dir / "02-code-mode").mkdir()
+    (source_dir / "02-code-mode" / "code.md").write_text("Code Rule")
+
+    target_root = tmp_path / "target_project"
+    target_root.mkdir()
+
+    # Get the kilocode spec from the source of truth
+    from rulebook_ai.assistants import ASSISTANT_MAP
+    kilocode_spec = ASSISTANT_MAP['kilocode']
+
+    # Execute the generation
+    rule_manager._generate_for_assistant(kilocode_spec, source_dir, target_root)
+
+    # Verify the output directories and files
+    kilocode_root = target_root / ".kilocode"
+    assert (kilocode_root / "rules" / "general.md").is_file()
+    assert (kilocode_root / "rules" / "general.md").read_text() == "General Rule"
+    assert (kilocode_root / "code-mode" / "code.md").is_file()
+    assert (kilocode_root / "code-mode" / "code.md").read_text() == "Code Rule"

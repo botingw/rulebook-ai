@@ -22,17 +22,17 @@ uv pip install -e .
 rulebook-ai doctor  # Check your setup
 ```
 
-## Supercharge Your AI Coding Workflow Across Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot
+## Supercharge Your AI Coding Workflow Across Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot
 
 Tired of inconsistent AI behavior across different coding assistants? Struggling to maintain context and enforce best practices on complex projects? This template provides a robust, cross-platform framework designed to elevate your AI pair-programming experience.
 
-Leveraging established software engineering principles and a structured documentation system, this template ensures your AI assistants (like Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot) operate consistently, understand your project deeply, and follow optimal workflows. Move beyond simple prototypes and build sophisticated applications with AI partners that truly understand your project's architecture, requirements, and history.
+Leveraging established software engineering principles and a structured documentation system, this template ensures your AI assistants (like Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot) operate consistently, understand your project deeply, and follow optimal workflows. Move beyond simple prototypes and build sophisticated applications with AI partners that truly understand your project's architecture, requirements, and history.
 
 ## Why Use This Template?
 
 *   **Consistent AI Behavior:** Define clear workflows (Plan, Implement, Debug) and principles for your AI, ensuring predictable and high-quality output regardless of the platform used.
 *   **Persistent Project Memory:** Implement a structured documentation system (`docs/`, `tasks/`) that acts as a shared "memory bank," providing deep context to the AI about requirements, architecture, technical decisions, and progress.
-*   **Cross-Platform Compatibility:** Designed from the ground up to work seamlessly with Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot, respecting their specific rule-loading mechanisms.
+*   **Cross-Platform Compatibility:** Designed from the ground up to work seamlessly with Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot, respecting their specific rule-loading mechanisms.
 *   **Enforce Best Practices:** Integrate fundamental software engineering principles directly into the AI's instructions, promoting code quality, maintainability, and structured development.
 *   **Reduced Setup Time:** Get started quickly with a pre-configured structure and ruleset, adaptable to your specific project needs.
 *   **Optimized for Complex Projects:** The structured memory and workflow approach provides the necessary context and guidance for AI assistants working on more than just simple scripts or prototypes.
@@ -49,7 +49,7 @@ This template is particularly beneficial for:
 
 ## Key Features (Benefits-Focused)
 
-1.  **Work Seamlessly Across Platforms:** Native support and configuration guidance for Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot ensures your rules work consistently wherever you code.
+1.  **Work Seamlessly Across Platforms:** Native support and configuration guidance for Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot ensures your rules work consistently wherever you code.
 2.  **Maintain Consistent AI Context:** The structured "Memory Bank" (core documentation files) provides deep, persistent context, reducing repetitive explanations and improving AI understanding.
 3.  **Enforce Software Engineering Best Practices:** Guide your AI to follow established principles for planning, implementation, debugging, modularity, and testing.
 4.  **Optimize Token Usage:** Rules are organized to leverage platform-specific loading mechanisms (where available) to minimize unnecessary token consumption.
@@ -79,9 +79,13 @@ Once Rulebook-AI is set up with a chosen rule set (in `project_rules/`) and the 
         ```
         Using the workflow defined in @project_rules/implement.md, please develop the `updateUserProfile` function. The detailed requirements for this function are specified under the 'User Profile Update' task in @memory/tasks/active_context.md. Ensure the implementation aligns with the API design guidelines found in @memory/docs/technical.md.
         ```
-    *   **Why this is important:** This is the core development loop where Rulebook-AI shines. It shows the AI leveraging both the *procedural rules* (how to approach implementation, from `project_rules/\`) and the rich *contextual memory* (what to implement and its surrounding technical landscape, from `memory/\`). This leads to more accurate, consistent, and context-aware code generation, reducing rework and improving quality.
+    *   **Why this is important:** This is the core development loop where Rulebook-AI shines. It shows the AI leveraging both the *procedural rules* (how to approach implementation, from `project_rules/
+`) and the rich *contextual memory* (what to implement and its surrounding technical landscape, from `memory/
+`). This leads to more accurate, consistent, and context-aware code generation, reducing rework and improving quality.
 
-These examples illustrate how providing structured rules and a persistent memory bank allows for more sophisticated and productive interactions with your AI coding assistant. Experiment with referencing different files from your `project_rules/\` and `memory/\` directories to best suit your workflow.
+These examples illustrate how providing structured rules and a persistent memory bank allows for more sophisticated and productive interactions with your AI coding assistant. Experiment with referencing different files from your `project_rules/
+` and `memory/
+` directories to best suit your workflow.
 
 ## Quickstart: Using this Template for AI Coding
 
@@ -95,7 +99,7 @@ This template repository serves as the central source for master rule sets. To u
 *   **Target Memory Bank Directory:** A folder named **`memory/`** created *inside your Target Repo* during installation. It's populated with project-specific memory documents from the Source Template Repo's `memory_starters/` (new starter files are copied if they don't exist; existing files are **not** overwritten). **This folder should be version controlled in your Target Repo.**
 *   **Target Tools Directory:** A folder named **`tools/`** created *inside your Target Repo* during installation. It's populated with utility scripts or configurations from the Source Template Repo's `tool_starters/` (new starter files/subdirectories are copied if they don't exist; existing files/subdirectories are **not** overwritten). **This folder should be version controlled in your Target Repo.**
 *   **Target `env.example` and `requirements.txt`:** The `env.example` and `requirements.txt` files are copied from the Source Template Repo's root to *your Target Repo's root* during installation (non-destructively; existing files are preserved). **These files should be version controlled in your Target Repo.**
-*   **Target Platform Rules:** Generated, platform-specific rule directories/files (e.g., `.cursor/rules/`, `.clinerules/`, `.roo/`, `.windsurf/rules/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) created *inside your Target Repo* by the `sync` command using `project_rules/` as input. **These folders/files should be added to your Target Repo's `.gitignore` file.**
+*   **Target Platform Rules:** Generated, platform-specific rule directories/files (e.g., `.cursor/rules/`, `.clinerules/`, `.roo/`, `.kilocode/`, `.windsurf/rules/`, `WARP.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) created *inside your Target Repo* by the `sync` command using `project_rules/` as input. **These folders/files should be added to your Target Repo's `.gitignore` file.**
 
 **Workflow & Commands:**
 
@@ -125,9 +129,9 @@ This template repository serves as the central source for master rule sets. To u
         *   Copies content from this repo's `memory_starters/` to `~/git/my_cool_project/memory/` (non-destructively; existing files are preserved).
         *   Copies content from this repo's `tool_starters/` to `~/git/my_cool_project/tools/` (non-destructively; existing files/subdirectories are preserved).
         *   Copies `env.example` and `requirements.txt` from this repo's root to `~/git/my_cool_project/` (non-destructively; existing files are preserved).
-        *   Automatically runs the `sync` command to generate the initial Target Platform Rules (e.g., `.cursor/rules/`, `.clinerules/`, `.roo/`, `.windsurf/rules/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) inside `~/git/my_cool_project/` based on the new `project_rules/`.
+        *   Automatically runs the `sync` command to generate the initial Target Platform Rules (e.g., `.cursor/rules/`, `.clinerules/`, `.roo/`, `.kilocode/`, `.windsurf/rules/`, `WARP.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) inside `~/git/my_cool_project/` based on the new `project_rules/`.
     *   **Follow Up:**
-        *   Add the generated directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) to your target project's (`~/git/my_cool_project/`) `.gitignore`.
+        *   Add the generated directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.kilocode/`, `.windsurf/`, `WARP.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/GEMINI.md`) to your target project's (`~/git/my_cool_project/`) `.gitignore`.
         *   Commit the newly created/updated `memory/`, `tools/`, `env.example`, and `requirements.txt` files/directories within your target project.
 
 # Sync (update) rules when rulebook-ai is updated
@@ -166,7 +170,7 @@ rulebook-ai list-rules
 
 ### Start Coding with AI Assistants
 
-Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, etc.) in your target project.
+Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, etc.) in your target project.
 
 **Initial Prompt Suggestion (for setting up memory in a new project):**
 > Using the project's custom rules, initialize the Memory Bank files (docs/, tasks/) based on the project's current state or initial requirements. Follow the structure and instructions defined in the rules for documenting project context.
@@ -179,7 +183,7 @@ Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude C
         # Example:
         rulebook-ai clean-rules ~/git/my_cool_project
         ```
-    *   **Action:** Removes `~/git/my_cool_project/project_rules/` and the generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`). The `memory/` and `tools/` directories are **not** affected.
+    *   **Action:** Removes `~/git/my_cool_project/project_rules/` and the generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.kilocode/`, `.windsurf/`, `WARP.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`). The `memory/` and `tools/` directories are **not** affected.
 
 7.  **Clean Up All Framework Components (Full Uninstall):**
     *   To completely remove *all* framework components (Target Platform Rules, `project_rules/`, `memory/`, `tools/`, `env.example`, and `requirements.txt`) from your target project, use the `clean-all` command.
@@ -190,7 +194,7 @@ Once rules are installed, use your AI coding assistants (Cursor, CLINE, Claude C
         # Example:
         rulebook-ai clean-all ~/git/my_cool_project
         ```
-    *   **Action:** After confirmation, removes `project_rules/`, `memory/`, `tools/`, `env.example`, `requirements.txt`, and all generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.windsurf/`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`) from `~/git/my_cool_project/`.
+    *   **Action:** After confirmation, removes `project_rules/`, `memory/`, `tools/`, `env.example`, `requirements.txt`, and all generated rule directories/files (e.g., `.cursor/`, `.clinerules/`, `.roo/`, `.kilocode/`, `.windsurf/`, `WARP.md`, `.github/copilot-instructions.md`, `CLAUDE.md`, `AGENTS.md`, `.gemini/`) from `~/git/my_cool_project/`.
 
 ### Environment Setup (Using Conda)
 
@@ -226,19 +230,21 @@ With the environment set up and activated, you can run the Python tools as descr
 ## Rule Loading Summary (Based on Official Docs & Template Implementation)
 For detail, go to [rule_loading_summary.md](memory/docs/user_guide/rule_loading_summary.md)
 
-# Tips in General Using Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot:
+# Tips in General Using Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot:
 ## CLINE/RooCode:
 1. Every time you change Roo Code **mode** in the middle of an task, it changes the system prompt and reset the prompt caching.
 
 # The Rules Template: Universal Rules for AI Coding Assistants 🔥 
 
-This template provides a robust and adaptable framework of rules designed to enhance the performance of AI coding assistants like Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot. Rooted in established software engineering principles and documentation best practices, it ensures consistent and effective AI-assisted development across different platforms.
+This template provides a robust and adaptable framework of rules designed to enhance the performance of AI coding assistants like Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot. Rooted in established software engineering principles and documentation best practices, it ensures consistent and effective AI-assisted development across different platforms.
 
 For detail, go to [rule_template.md](memory/docs/user_guide/rule_template.md)
 
 # Rule Files:
 
-This template relies on a carefully orchestrated system of directories and files for Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, and Github Copilot. These components work together to provide a consistent and context-aware experience with your AI assistant. The **'rule' files** (e.g., `plan.md`, `implement.md`, `debug.md` found within a chosen rule set like `light-spec/`) are designed to define *how your AI should approach tasks*. They dictate specific workflows for planning, coding, or debugging, rooted in software engineering best practices. These rules guide the AI's *process* and operational methodology. The **'memory' files** and the `memory/\` directory structure (populated from `memory_starters/\` during installation) are designed to provide the AI with *persistent, structured knowledge about your specific project*. This includes its requirements (@`memory/docs/product_requirement_docs.md`), architecture (@`memory/docs/architecture.md`), ongoing tasks (@`memory/tasks/tasks_plan.md`), and learned information. This forms the AI's *contextual understanding* and long-term project "memory." Within each environment, there are crucial files that shape how the AI operates:
+This template relies on a carefully orchestrated system of directories and files for Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot. These components work together to provide a consistent and context-aware experience with your AI assistant. The **'rule' files** (e.g., `plan.md`, `implement.md`, `debug.md` found within a chosen rule set like `light-spec/`) are designed to define *how your AI should approach tasks*. They dictate specific workflows for planning, coding, or debugging, rooted in software engineering best practices. These rules guide the AI's *process* and operational methodology. The **'memory' files** and the `memory/
+` directory structure (populated from `memory_starters/
+` during installation) are designed to provide the AI with *persistent, structured knowledge about your specific project*. This includes its requirements (@`memory/docs/product_requirement_docs.md`), architecture (@`memory/docs/architecture.md`), ongoing tasks (@`memory/tasks/tasks_plan.md`), and learned information. This forms the AI's *contextual understanding* and long-term project "memory." Within each environment, there are crucial files that shape how the AI operates:
 
 1. <strong>rules</strong> –
    Thois can house generic rules. Bring your own flavour to this minimal document. Below are three files: (a) plan, (b) implement, (c) debug, that defines workflows for these three tasks based on refining 100s of rule repositories and software engineering best practices:
@@ -423,7 +429,7 @@ This structure ensures that different aspects of the project, such as code, test
 
 ## Advantages of Using the Rules Template
 
-1.  **Cross-Platform Compatibility:** Usable seamlessly with Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, RooCode, Windsurf, Github Copilot, and other AI coding assistants.
+1.  **Cross-Platform Compatibility:** Usable seamlessly with Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, Github Copilot, and other AI coding assistants.
 2.  **Context Sharing:** Enables context sharing and consistent workflows across different AI assistants, facilitating collaborative and platform-agnostic development.
 3.  **Up-to-Date Compatibility:** Designed to be compatible with the latest versions of Cursor and CLINE, ensuring long-term usability.
 4.  **Automated Documentation Generation:**  Provides the foundation for automatically generating comprehensive project documentation in PDF format, streamlining documentation efforts.
