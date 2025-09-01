@@ -25,11 +25,14 @@ class AssistantSpec:
     # Does the assistant read a single file or a directory of files?
     is_multi_file: bool
 
-    # Does the assistant recursively search subdirectories for rules?
-    supports_subdirectories: bool
-
     # The top-level path to remove during a 'clean' operation.
     clean_path: str
+
+    # Does the assistant support mode-based subdirectories?
+    has_modes: bool = False
+
+    # Does the assistant recursively search subdirectories for rules?
+    supports_subdirectories: bool = False
 
     # --- File Constraints (with default values) ---
     # If not multi-file, what is the exact name of the rule file?
@@ -45,7 +48,6 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Cursor',
         rule_path='.cursor/rules',
         is_multi_file=True,
-        supports_subdirectories=False,
         file_extension='.mdc',
         clean_path='.cursor'
     ),
@@ -54,7 +56,6 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Windsurf',
         rule_path='.windsurf/rules',
         is_multi_file=True,
-        supports_subdirectories=False,
         file_extension='.md',
         clean_path='.windsurf'
     ),
@@ -63,24 +64,40 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Cline',
         rule_path='.clinerules',
         is_multi_file=True,
-        supports_subdirectories=False,
         file_extension=None,  # Extension is removed by our generator
         clean_path='.clinerules'
     ),
     AssistantSpec(
         name='roo',
         display_name='RooCode',
-        rule_path='.roo/rules',
+        rule_path='.roo',
         is_multi_file=True,
+        has_modes=True,
         supports_subdirectories=True,
         clean_path='.roo'
+    ),
+    AssistantSpec(
+        name='kilocode',
+        display_name='Kilo Code',
+        rule_path='.kilocode',
+        is_multi_file=True,
+        has_modes=True,
+        supports_subdirectories=True,
+        clean_path='.kilocode'
+    ),
+    AssistantSpec(
+        name='warp',
+        display_name='Warp',
+        rule_path='.',
+        is_multi_file=False,
+        filename='WARP.md',
+        clean_path='WARP.md'
     ),
     AssistantSpec(
         name='copilot',
         display_name='GitHub Copilot',
         rule_path='.github',
         is_multi_file=False,
-        supports_subdirectories=False,
         filename='copilot-instructions.md',
         clean_path='.github/copilot-instructions.md'
     ),
@@ -89,7 +106,6 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Claude Code',
         rule_path='.',
         is_multi_file=False,
-        supports_subdirectories=False,
         filename='CLAUDE.md',
         clean_path='CLAUDE.md'
     ),
@@ -98,7 +114,6 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Codex CLI',
         rule_path='.',
         is_multi_file=False,
-        supports_subdirectories=False,
         filename='AGENTS.md',
         clean_path='AGENTS.md'
     ),
@@ -107,7 +122,6 @@ SUPPORTED_ASSISTANTS: List[AssistantSpec] = [
         display_name='Gemini CLI',
         rule_path='.gemini',
         is_multi_file=False,
-        supports_subdirectories=False,
         filename='GEMINI.md',
         clean_path='.gemini/GEMINI.md'
     ),
