@@ -29,6 +29,9 @@ SOURCE_ENV_EXAMPLE_FILE = ".env.example"
 SOURCE_REQUIREMENTS_TXT_FILE = "requirements.txt"
 
 BUG_REPORT_URL = "https://github.com/botingw/rulebook-ai/issues"
+RATINGS_REVIEWS_URL = (
+    "https://github.com/botingw/rulebook-ai/wiki/Ratings-%26-Reviews-(Rulesets)"
+)
 
 
 class RuleManager:
@@ -297,12 +300,22 @@ class RuleManager:
         print("Available rule sets:")
         for p in sorted([p.name for p in self.source_rules_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
             print(f"  - {p}")
+        print(f"\nFor ratings and reviews of these rule sets, visit {RATINGS_REVIEWS_URL}")
 
     def report_bug(self) -> int:
         """Provide the project issue tracker URL for reporting bugs."""
         print(f"To report a bug, please visit {BUG_REPORT_URL}")
         try:
             webbrowser.open(BUG_REPORT_URL)
+        except Exception:
+            pass
+        return 0
+
+    def rate_ruleset(self) -> int:
+        """Open the ratings and reviews wiki page for rulesets."""
+        print(f"For ratings and reviews, please visit {RATINGS_REVIEWS_URL}")
+        try:
+            webbrowser.open(RATINGS_REVIEWS_URL)
         except Exception:
             pass
         return 0

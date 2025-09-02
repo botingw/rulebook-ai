@@ -64,3 +64,14 @@ This plan is a historical record of the tasks completed, based on the final desi
 | **E8** | Update unit and integration tests to verify the new mode-based logic and assistant support. | P1 | Completed | E7 |
 | **E9** | Enhance integration tests to check for multiple sub-modes and files within them. | P2 | Completed | E8 |
 | **E10** | Update design documents to reflect Kilo Code and Warp support. | P2 | Completed | E7 |
+
+### Enhancement: Ratings & Reviews Command
+
+**Description:** Introduced a utility command that directs users to the project's Ratings & Reviews wiki for rule sets.
+
+| Task ID | Description | Importance | Status | Dependencies |
+|:--------|:------------|:-----------|:-------|:-------------|
+| **E11** | Add `rate-ruleset` CLI command linking to the ratings wiki. | P3 | Completed | - |
+| **E12** | Update design docs and tests for ratings command. | P3 | Completed | E11 |
+| **E13** | Surface ratings wiki link in `list-rules` output. | P3 | Completed | E11 |
+| **E14** | Update docs and tests for ratings link in `list-rules`. | P3 | Completed | E13 |
