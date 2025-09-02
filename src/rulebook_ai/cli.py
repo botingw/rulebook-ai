@@ -49,9 +49,16 @@ def create_parser() -> argparse.ArgumentParser:
     clean_all_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
     
     # --- Utility Commands ---
-    subparsers.add_parser("list-rules", help="List available rule sets.")
+    subparsers.add_parser(
+        "list-rules",
+        help="List available rule sets and show ratings link.",
+    )
     subparsers.add_parser("doctor", help="Check environment and setup for issues.")
     subparsers.add_parser("bug-report", help="Open the project issue tracker to report a bug.")
+    subparsers.add_parser(
+        "rate-ruleset",
+        help="Open the ratings & reviews wiki page for rulesets.",
+    )
 
     return parser
 
@@ -101,6 +108,9 @@ def handle_command(args: argparse.Namespace) -> int:
 
     elif command == "bug-report":
         return rule_manager.report_bug()
+
+    elif command == "rate-ruleset":
+        return rule_manager.rate_ruleset()
 
     return 1
 

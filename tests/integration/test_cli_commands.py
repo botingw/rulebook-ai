@@ -223,6 +223,7 @@ def test_list_rules(script_runner):
     assert "Available rule sets:" in stdout
     assert "- heavy-spec" in stdout
     assert "- light-spec" in stdout
+    assert "https://github.com/botingw/rulebook-ai/wiki/Ratings-%26-Reviews-(Rulesets)" in stdout
     
 
 def test_install_with_specific_assistant_flags(script_runner, tmp_path):
@@ -333,3 +334,13 @@ def test_bug_report_command(script_runner):
     result = script_runner(["bug-report"])
     assert result.returncode == 0, f"Command failed. STDERR:\n{result.stderr}"
     assert "https://github.com/botingw/rulebook-ai/issues" in result.stdout
+
+
+def test_rate_ruleset_command(script_runner):
+    """Verify the rate-ruleset command opens the ratings page URL."""
+    result = script_runner(["rate-ruleset"])
+    assert result.returncode == 0, f"Command failed. STDERR:\n{result.stderr}"
+    assert (
+        "https://github.com/botingw/rulebook-ai/wiki/Ratings-%26-Reviews-(Rulesets)"
+        in result.stdout
+    )

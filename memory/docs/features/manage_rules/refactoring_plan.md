@@ -59,4 +59,8 @@ Following the refactor, the specification was extended to include Claude Code, C
 
 An additional enhancement introduced a `bug-report` CLI command that links users to the project's issue tracker for submitting problems.
 
+Another enhancement added a `rate-ruleset` CLI command that opens the Ratings & Reviews wiki, encouraging community feedback on rule sets.
+
+An additional improvement surfaces the Ratings & Reviews wiki link within the `list-rules` command so users can read feedback before installing a ruleset.
+
 A subsequent enhancement introduced support for mode-based assistants (Kilo Code, Roo Code), which required adding a `has_modes` flag to the `AssistantSpec` and extending the `RuleManager` engine. This demonstrated the extensibility of the refactored architecture.

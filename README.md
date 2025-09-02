@@ -4,6 +4,8 @@
 # Rulebook-AI: Universal Rules Template for AI Coding Assistants
 
 * Bugs or ideas → open an **Issue** in the repo (run `rulebook-ai bug-report`)
+* Rate or review rule sets → run `rulebook-ai rate-ruleset`
+* See rule set reviews before installing → run `rulebook-ai list-rules` and follow the link
 * Anonymous feedback: [Go to the Google Form](https://docs.google.com/forms/d/e/1FAIpQLSeW57QtPEWIRhHY1iOb8f5KQZTGLSeeb_PN2iZLd0Aw_pVYxw/viewform?usp=header)
 
 ## Quick Start with uv/uvx
@@ -107,6 +109,7 @@ This template repository serves as the central source for master rule sets. To u
 
 1.  **List Available Rule Sets (Optional):**
     *   Use the `list-rules` command to see which rule sets are available for installation from this Source Template Repo.
+    *   **Note:** The command also prints a link to the ratings & reviews wiki so you can read feedback before installing.
     *   **Command:**
         ```bash
         rulebook-ai list-rules
@@ -145,6 +148,9 @@ uvx rulebook-ai doctor
 
 # Clean up rules
 uvx rulebook-ai clean-rules --project-dir /path/to/your/project
+
+# Rate or review rule sets
+uvx rulebook-ai rate-ruleset
 
 # Report a bug in rulebook-ai
 uvx rulebook-ai bug-report

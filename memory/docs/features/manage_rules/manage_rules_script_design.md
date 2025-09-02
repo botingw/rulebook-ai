@@ -58,12 +58,17 @@ This document outlines the design for a new Python script, `src/manage_rules.py`
 *   **`list-rules`**
     *   **Action:** Scans the Source Repository's `rule_sets/` directory. It lists all subdirectories found within `rule_sets/`, as each subdirectory represents an available rule set.
     *   **Use Case:** Allows users to quickly see which rule sets are available for installation without needing to manually inspect the `rule_sets/` directory in the source framework.
-    *   **Output:** Prints a header like "Available rule sets:" followed by the name of each discovered rule set, one per line. If no rule sets are found, it prints an appropriate message.
+    *   **Output:** Prints a header like "Available rule sets:" followed by the name of each discovered rule set, one per line. If no rule sets are found, it prints an appropriate message. The command also shows a link to the Ratings & Reviews wiki so users can read or leave feedback.
 
 *   **`bug-report`**
     *   **Action:** Prints the GitHub issue tracker URL and attempts to open it in the user's default browser.
     *   **Use Case:** Provides a quick way for users to report problems with the tool.
     *   **Output:** Shows the issue tracker link.
+
+*   **`rate-ruleset`**
+    *   **Action:** Prints the ratings and reviews wiki URL and attempts to open it in the user's default browser.
+    *   **Use Case:** Directs users to rate existing rule sets or read community feedback.
+    *   **Output:** Shows the ratings and reviews link.
 
 **5. Implementation Notes**
 
