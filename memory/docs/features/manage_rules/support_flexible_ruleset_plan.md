@@ -124,7 +124,6 @@ your-target-project/
     *   **Compose AI Rules:**
         *   Gather all rule files from the `rules/` directory of *every* active pack.
         *   Concatenate them into a single stream, respecting the order from `selection.json`.
-        *   Generate the final, combined rule files for each selected AI assistant (e.g., `.cursor/rules/combined.md`).
 5.  **Refactor `clean_all()` to `clean()` and add `clean_rules()`:**
     *   `clean()` removes the entire `.rulebook-ai/` directory, `memory/`, `tools/`, and all generated platform rules. It must retain its safety confirmation prompt.
     *   `clean_rules()` deletes only `.rulebook-ai/` and generated platform rules, preserving the top-level `memory/` and `tools/` directories.
