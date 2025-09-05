@@ -11,7 +11,7 @@ The `rulebook-ai` command-line interface manages modular "Packs" that bundle AI 
 3.  **Target Internal State:** A hidden **`.rulebook-ai/`** directory created inside the Target Repo. It contains a copy of each active pack under `.rulebook-ai/packs/` and a machine-readable **`selection.json`** recording the active pack list and order.
 4.  **Target Memory Bank Directory:** A folder named **`memory/`** created inside the Target Repo and populated from pack `memory_starters/`. This folder is persistent and should be version controlled.
 5.  **Target Tools Directory:** A folder named **`tools/`** created inside the Target Repo and populated from pack `tool_starters/`. This folder is persistent and should be version controlled.
-6.  **Target Platform Rules:** Generated assistant-specific directories/files (e.g., `.clinerules/`, `.cursor/rules/`, `WARP.md`, etc.) created inside the Target Repo by the `sync` command. These generated outputs should be added to the Target Repo's `.gitignore` file.
+6.  **Target Platform Rules:** Generated assistant-specific rule files and directories created by the `sync` command. For a detailed specification on how rules are generated for different platforms, see [Platform Rules Spec](platform_rules_spec.md). These generated outputs should always be added to the Target Repo's `.gitignore` file.
 
 **3. Features & Advantages**
 
