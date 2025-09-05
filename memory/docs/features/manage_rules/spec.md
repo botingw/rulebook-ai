@@ -1,69 +1,80 @@
-# Specification: Rulebook-AI CLI
+# Specification: Rulebook-AI CLI (Composable Packs)
 
 **1. Overview**
 
-This document outlines the specification for the `rulebook-ai` command-line interface. This script provides commands for installing, synchronizing, and cleaning AI assistant rule sets, project memory banks, and supporting tools within target project repositories. It uses fixed directory names for simplicity: `project_rules/` (for rule sources), `memory/` (for project context), and `tools/` (for utilities) in the target repository.
+The `rulebook-ai` command-line interface manages modular "Packs" that bundle AI rules, starter memory documents, and starter tools. Users can add and remove packs, compose their contents, and generate platform-specific rules for multiple assistants within a target project. The CLI maintains the user's project context in `memory/` and `tools/` while keeping internal state in a hidden `.rulebook-ai/` directory.
 
 **2. Core Concepts**
 
-1.  **Source Repository (Framework):** The central repository containing master rule sets (from `rule_sets/`), master memory bank starter documents (from `memory_starters/`), and master tool starters (from `tool_starters/`).
-2.  **Target Repo:** Any project repository where the framework is installed.
-3.  **Target Project Rules Directory:** A folder named **`project_rules/`** *created inside* the Target Repo during installation. It holds project-specific rule files, copied from a chosen set in the Source Repository. **This folder is considered temporary and is removed by `clean-rules`.**
-4.  **Target Memory Bank Directory:** A folder named **`memory/`** *created inside* the Target Repo during installation, holding project-specific memory documents. **This folder should be version controlled within the Target Repo.**
-5.  **Target Tools Directory:** A folder named **`tools/`** *created inside* the Target Repo during installation, holding utility scripts or configurations. **This folder should be version controlled within the Target Repo.**
-6.  **Target Platform Rules:** The generated, platform-specific rule directories/files (e.g., `.clinerules/`, `.cursor/rules/`, `WARP.md`, etc.) created *inside* the Target Repo by the `sync` command. **These folders/files should be added to the Target Repo's `.gitignore` file.**
+1.  **Source Repository (Framework):** Hosts a top-level `packs/` directory. Each pack contains `rules/`, `memory_starters/`, `tool_starters/`, a required `manifest.yaml`, and a `README.md`.
+2.  **Target Repo:** Any project repository where packs are added.
+3.  **Target Internal State:** A hidden **`.rulebook-ai/`** directory created inside the Target Repo. It contains a copy of each active pack under `.rulebook-ai/packs/` and a machine-readable **`selection.json`** recording the active pack list and order.
+4.  **Target Memory Bank Directory:** A folder named **`memory/`** created inside the Target Repo and populated from pack `memory_starters/`. This folder is persistent and should be version controlled.
+5.  **Target Tools Directory:** A folder named **`tools/`** created inside the Target Repo and populated from pack `tool_starters/`. This folder is persistent and should be version controlled.
+6.  **Target Platform Rules:** Generated assistant-specific directories/files (e.g., `.clinerules/`, `.cursor/rules/`, `WARP.md`, etc.) created inside the Target Repo by the `sync` command. These generated outputs should be added to the Target Repo's `.gitignore` file.
 
 **3. Features & Advantages**
 
-*   **Project-Specific Customization:** Enables each target repository to maintain its own tailored project memory bank and utility tools.
-*   **Simplified Maintenance:** Rule sets (`project_rules/`) are managed by the script and can be easily cleaned and re-installed.
-*   **Clear Project Context:** The `memory/` and `tools/` folders serve as the persistent, version-controlled core for project-specific AI guidance.
-*   **Cleanliness:** Keeps generated platform-specific rules out of the target repository's version control.
-*   **Focused Cleaning:** `clean-rules` removes rule-related artifacts, leaving core project memory (`memory/`) and tools untouched. `clean-all` provides a complete removal option.
+*   **Composable Packs:** Multiple packs can be combined in a single project. Their order is tracked in `selection.json`, and earlier packs take precedence when files conflict.
+*   **Explicit State:** The `.rulebook-ai/selection.json` file provides a clear, machine-readable record of active packs.
+*   **Project-Specific Context:** The `memory/` and `tools/` directories hold the unified AI context and are under user control.
+*   **Cleanliness:** Generated platform rules are kept out of version control, and internal state is isolated in `.rulebook-ai/`.
+*   **Focused Cleaning:** `clean-rules` removes only rule-related artifacts, preserving project memory and tools. `clean` provides a complete removal option.
 
-**4. CLI Commands**
+**4. Sync Logic**
 
-*   **`install <target_repo_path> [--rule-set <name>] [--cursor] [--cline] [--roo] [--kilocode] [--warp] [--windsurf] [--copilot] [--claude-code] [--codex-cli] [--gemini-cli] [--all]`**
-    *   **Action:** Installs and configures the framework components in a target repository.
-        1.  Copies the specified rule set (default: `light-spec`) into `<target_repo_path>/project_rules/`.
-        2.  Copies starter files from the framework's `memory_starters/` into `<target_repo_path>/memory/`.
-        3.  Copies starter tools from the framework's `tool_starters/` into `<target_repo_path>/tools/`.
-        4.  Copies `env.example` and `requirements.txt` to the target repository.
-        5.  Immediately runs the `sync` logic for the selected assistants. If no assistant flags are provided, it defaults to ALL supported assistants.
-    *   **Behavior:**
-        *   The `project_rules/` directory is treated as ephemeral. If it already exists, it will be cleared and overwritten to ensure a fresh copy of the chosen rule set.
-        *   The `memory/`, `tools/`, `env.example`, and `requirements.txt` are treated as persistent. The install operation is **non-destructive**; it will only add new starter files and will **not** overwrite any existing files in these locations.
+The CLI maintains Target Platform Rules by composing active packs and writing their outputs to each assistant's rule directory. Running `rulebook-ai sync` performs this regeneration explicitly. Commands that modify the active pack list (`packs add` and `packs remove`) automatically invoke the same logic as an **implicit sync** so that Target Platform Rules stay current without an extra step.
+
+**5. CLI Commands**
+
+*   **`rulebook-ai packs list`**
+    *   **Action:** Lists all available packs from the Source Repository's `packs/` directory.
+    *   **Output:** Prints each pack's name, version, and description, along with a link to the Ratings & Reviews wiki.
+    *   **Use Case:** Explore available Packs before selecting one to add to a project.
+
+*   **`rulebook-ai packs add <name>`**
+    *   **Action:** Adds a pack to the Target Repo and triggers an implicit sync (see **Sync Logic**).
+        1.  Copies the pack into the Target Internal State at `.rulebook-ai/packs/<name>/`. If that directory already exists, it is cleared and overwritten to ensure a fresh copy.
+        2.  Appends the pack's `name` and `version` to `.rulebook-ai/selection.json`.
+        3.  Merges `memory_starters/` and `tool_starters` into the Target Memory Bank Directory (`memory/`) and Target Tools Directory (`tools/`) without overwriting existing files.
     *   **Output:** Prints progress messages and recommends which files to commit versus which to add to `.gitignore`.
+    *   **Use Case:** Introduce a new Pack or refresh an existing one while keeping project-specific memory and tools intact.
 
-*   **`sync <target_repo_path> [--cursor] [--cline] [--roo] [--kilocode] [--warp] [--windsurf] [--copilot] [--claude-code] [--codex-cli] [--gemini-cli] [--all]`**
-    *   **Action:** Reads rules from `<target_repo_path>/project_rules/` and regenerates the platform-specific rules for the selected assistants. If no assistants are specified, it syncs for ALL.
-    *   **Use Case:** Run after manually modifying files within `<target_repo_path>/project_rules/` to apply the changes.
+*   **`rulebook-ai packs remove <name>`**
+    *   **Action:** Removes a pack and triggers an implicit sync.
+        1.  Deletes the pack's entry from `.rulebook-ai/selection.json`.
+        2.  Removes the pack source from the Target Internal State at `.rulebook-ai/packs/<name>/`.
+        3.  Removes any `memory/` and `tools/` files previously provided by the pack from the Target Memory Bank and Tools directories.
     *   **Output:** Prints progress messages.
+    *   **Use Case:** Drop a Pack's rules and context when it is no longer needed.
 
-*   **`clean-rules <target_repo_path>`**
-    *   **Action:**
-        1.  Removes all generated Target Platform Rules (e.g., `.clinerules/`, `.cursor/rules/`, etc.).
-        2.  Removes the `project_rules/` directory.
+*   **`rulebook-ai packs status`**
+    *   **Action:** Displays the active packs, their versions, and their order as recorded in `selection.json`.
+    *   **Use Case:** Verify which Packs are active and in what order when debugging rule composition.
+
+*   **`rulebook-ai sync [--cursor] [--cline] [--roo] [--kilocode] [--warp] [--windsurf] [--copilot] [--claude-code] [--codex-cli] [--gemini-cli] [--all] [--strict] [--force] [--rebuild]`**
+    *   **Action:** Explicitly regenerates Target Platform Rules from the active packs. If no assistant flags are provided, it regenerates rules for all assistants.
     *   **Behavior:**
-        *   The `memory/` and `tools/` directories are **NOT** removed.
-        *   If a rule file is the only item within a directory (e.g., `.github/copilot-instructions.md`), the parent directory (`.github/`) will also be removed.
-    *   **Use Case:** Revert to a clean state without rules, while preserving the project memory bank and tools.
+        *   Deletes existing generated rule directories before regeneration.
+        *   Composes the Target Memory Bank and Tools directories by copying files from each active pack in order. Earlier packs win conflicts; later packs are skipped with a warning unless `--force` is provided. `--strict` aborts on conflict. `--rebuild` purges `memory/` and `tools/` before copying.
     *   **Output:** Prints progress messages.
+    *   **Use Case:** Run after manually editing `memory/` or `tools/`, or when pack contents change in the Source Repository and you want to refresh generated rules without changing the pack selection.
 
-*   **`clean-all <target_repo_path>`**
-    *   **Action:** Removes **all** framework components from the target repository, including generated rules, `project_rules/`, `memory/`, `tools/`, `env.example`, and `requirements.txt`.
-    *   **Behavior:**
-        *   This is a destructive operation. The command **MUST prompt for user confirmation** before proceeding.
-        *   Like `clean-rules`, it will remove parent directories (e.g., `.github/`) if they become empty after the rule files within them are removed.
-    *   **Use Case:** Completely uninstall all components of the framework from the target repository.
+*   **`rulebook-ai clean`**
+    *   **Action:** Removes the `.rulebook-ai/` directory, the Target Memory Bank (`memory/`), the Target Tools directory (`tools/`), and all generated platform rules.
+    *   **Behavior:** Destructive operation that **must prompt for user confirmation**. Parent directories (e.g., `.github/`) are removed if they become empty.
     *   **Output:** Prints a prominent warning, a confirmation prompt, and a summary of what was removed.
+    *   **Use Case:** Completely uninstall all Rulebook-AI components from a project.
 
-*   **`list-rules`**
-    *   **Action:** Lists all available rule sets from the Source Repository's `rule_sets/` directory.
-    *   **Output:** Prints a list of available rule sets and a link to the Ratings & Reviews wiki.
+*   **`rulebook-ai clean-rules`**
+    *   **Action:** Deletes `.rulebook-ai/` and all generated platform rules while preserving the Target Memory Bank and Tools directories.
+    *   **Behavior:** If a rule file is the only item within a directory, the parent directory is also removed.
+    *   **Output:** Prints progress messages.
+    *   **Use Case:** Revert to a clean state without generated rules while preserving project memory and tools.
 
-*   **`bug-report`**
+*   **`rulebook-ai bug-report`**
     *   **Action:** Prints the GitHub issue tracker URL and attempts to open it in the user's default browser.
 
-*   **`rate-ruleset`**
+*   **`rulebook-ai rate-ruleset`**
     *   **Action:** Prints the ratings and reviews wiki URL and attempts to open it in the user's default browser.
+
