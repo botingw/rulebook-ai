@@ -3,6 +3,8 @@
 import os
 import tempfile
 import shutil
+import json
+import yaml
 from pathlib import Path
 import pytest
 
@@ -23,34 +25,34 @@ def rule_manager(temp_dir):
     """Create a RuleManager instance for testing."""
     # Create a mock project structure in the temp directory
     project_root = Path(temp_dir)
-    
+
     # Create source directories
-    rule_sets_dir = project_root / "rule_sets"
-    rule_sets_dir.mkdir()
-    
-    test_rule_set = rule_sets_dir / "test-set"
-    test_rule_set.mkdir()
-    
-    # Create a test rule file
-    with open(test_rule_set / "01-test-rule.md", "w") as f:
+    packs_dir = project_root / "packs"
+    test_pack_dir = packs_dir / "test-set"
+    rules_dir = test_pack_dir / "rules"
+    memory_dir = test_pack_dir / "memory_starters"
+    tools_dir = test_pack_dir / "tool_starters"
+
+    for d in [packs_dir, test_pack_dir, rules_dir, memory_dir, tools_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    # Create test files
+    with open(rules_dir / "01-test-rule.md", "w") as f:
         f.write("# Test Rule\n\nThis is a test rule.")
     
-    memory_dir = project_root / "memory_starters"
-    memory_dir.mkdir()
     with open(memory_dir / "test-memory.md", "w") as f:
         f.write("# Test Memory\n\nThis is a test memory.")
     
-    tools_dir = project_root / "tool_starters"
-    tools_dir.mkdir()
     with open(tools_dir / "test-tool.md", "w") as f:
         f.write("# Test Tool\n\nThis is a test tool.")
-    
-    # Create a test env.example file
-    with open(project_root / ".env.example", "w") as f:
-        f.write("API_KEY=your-api-key-here")
+
+    with open(test_pack_dir / "manifest.yaml", "w") as f:
+        yaml.dump({"name": "test-set", "version": "1.2.3", "summary": "A test pack."}, f)
     
     # Initialize RuleManager with the test project root
     manager = RuleManager(project_root=project_root)
+    # Point the manager to the mock packs directory
+    manager.source_packs_dir = packs_dir
     return manager
 
 
@@ -71,3 +73,14 @@ def test_install(rule_manager, temp_dir):
     assert (target_dir / "memory").exists()
     assert (target_dir / "tools").exists()
     assert (target_dir / ".github" / "copilot-instructions.md").exists()
+
+    # Verify .rulebook-ai structure
+    rulebook_ai_dir = target_dir / ".rulebook-ai"
+    assert (rulebook_ai_dir / "selection.json").is_file()
+    assert (rulebook_ai_dir / "packs" / "test-set" / "manifest.yaml").is_file()
+    assert (rulebook_ai_dir / "packs" / "test-set" / "file-map.json").is_file()
+
+    with open(rulebook_ai_dir / "selection.json", "r") as f:
+        selection = json.load(f)
+    assert selection["packs"][0]["name"] == "test-set"
+    assert selection["packs"][0]["version"] == "1.2.3"

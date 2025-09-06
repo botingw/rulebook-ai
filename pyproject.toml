@@ -28,6 +28,7 @@ dependencies = [
     # Google Generative AI
     "google-generativeai",
     "grpcio==1.71.0",  # For Google GenAI preventing WARNING
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -50,11 +51,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "rulebook_ai" = [
-    "env.example",
-    "requirements.txt",
-    "memory_starters/**/*",
-    "rule_sets/**/*",
-    "tool_starters/**/*"
+    "packs/**/*"
 ]
 
 [tool.setuptools.exclude-package-data]

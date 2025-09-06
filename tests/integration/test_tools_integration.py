@@ -28,19 +28,19 @@ def test_cli_install_command():
         print("✅ CLI install command accessible")
 
 
-def test_cli_list_rules_command():
-    """Test that the CLI list-rules command works."""
+def test_cli_list_packs_command():
+    """Test that the CLI list-packs command works."""
     with tempfile.TemporaryDirectory() as temp_dir:
         project_dir = Path(temp_dir)
         
-        # Test CLI list-rules command
+        # Test CLI list-packs command
         result = subprocess.run([
             sys.executable, "-m", "rulebook_ai.cli",
-            "list-rules"
+            "list-packs"
         ], capture_output=True, text=True, cwd=project_dir)
         
         # Should succeed or fail gracefully (not crash)
-        print(f"✅ CLI list-rules command executed (exit code: {result.returncode})")
+        print(f"✅ CLI list-packs command executed (exit code: {result.returncode})")
 
 
 def test_cli_doctor_command():
@@ -72,9 +72,9 @@ def test_rule_manager_functionality():
     assert manager is not None
     
     # Test basic functionality
-    # list_rules now prints to stdout and returns None, so this test is no longer valid.
+    # list_packs now prints to stdout and returns None, so this test is no longer valid.
     # This functionality is tested in the CLI integration tests.
-    manager.list_rules()
+    manager.list_packs()
     
     print("✅ RuleManager programmatic access works")
 
@@ -111,12 +111,12 @@ def test_tool_installation_workflow():
     # Initialize RuleManager
     manager = RuleManager(str(test_env_dir))
     
-    # Test that we can query available rules (list_rules now prints to stdout)
+    # Test that we can query available packs (list_packs now prints to stdout)
     try:
-        manager.list_rules()
-        print(f"✅ list_rules executed successfully")
+        manager.list_packs()
+        print(f"✅ list_packs executed successfully")
     except Exception as e:
-        print(f"ℹ️  Rule listing test: {e}")
+        print(f"ℹ️  Pack listing test: {e}")
     
     # Test basic directory structure creation
     assert test_env_dir.exists()

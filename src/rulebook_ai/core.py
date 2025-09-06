@@ -8,6 +8,8 @@ separated from the CLI interface for better modularity and testing.
 import os
 import shutil
 import re
+import json
+import yaml
 from pathlib import Path
 from typing import List, Optional
 import webbrowser
@@ -15,13 +17,12 @@ import webbrowser
 from .assistants import AssistantSpec, SUPPORTED_ASSISTANTS, ASSISTANT_MAP
 
 # --- Constants ---
-SOURCE_RULE_SETS_DIR = "rule_sets"
-SOURCE_MEMORY_STARTERS_DIR = "memory_starters"
-SOURCE_TOOL_STARTERS_DIR = "tool_starters"
+SOURCE_PACKS_DIR = "packs"
 
 TARGET_PROJECT_RULES_DIR = "project_rules"
 TARGET_MEMORY_BANK_DIR = "memory"
 TARGET_TOOLS_DIR = "tools"
+TARGET_INTERNAL_STATE_DIR = ".rulebook-ai"
 
 DEFAULT_RULE_SET = "light-spec"
 
@@ -39,16 +40,12 @@ class RuleManager:
 
     def __init__(self, project_root: Optional[str] = None) -> None:
         self.package_path = Path(__file__).parent.absolute()
-        self.source_rules_dir = self.package_path / SOURCE_RULE_SETS_DIR
-        self.source_memory_dir = self.package_path / SOURCE_MEMORY_STARTERS_DIR
-        self.source_tools_dir = self.package_path / SOURCE_TOOL_STARTERS_DIR
+        self.source_packs_dir = self.package_path / SOURCE_PACKS_DIR
         
         # Handle development environment structure
-        if not self.source_rules_dir.exists():
+        if not self.source_packs_dir.exists():
             dev_root = self.package_path.parent.parent
-            self.source_rules_dir = dev_root / SOURCE_RULE_SETS_DIR
-            self.source_memory_dir = dev_root / SOURCE_MEMORY_STARTERS_DIR
-            self.source_tools_dir = dev_root / SOURCE_TOOL_STARTERS_DIR
+            self.source_packs_dir = dev_root / SOURCE_PACKS_DIR
         
         self.project_root = Path(project_root).absolute() if project_root else Path.cwd().absolute()
 
@@ -70,22 +67,21 @@ class RuleManager:
         all_files = [p for p in source_dir_path.glob(pattern) if p.is_file() and not p.name.startswith('.')]
         return sorted(all_files)
 
-    def _copy_tree_non_destructive(self, src_dir: Path, dest_dir: Path) -> int:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        count = 0
+    def _copy_tree_non_destructive_with_map(self, src_dir: Path, dest_dir: Path, project_root: Path) -> List[str]:
+        copied_files = []
         if not src_dir.is_dir():
-            return 0
+            return []
+
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
         for item in src_dir.iterdir():
             dest_item = dest_dir / item.name
             if item.is_dir():
-                if not dest_item.exists():
-                    shutil.copytree(item, dest_item)
-                    count += 1
-                else:
-                    count += self._copy_tree_non_destructive(item, dest_item)
-            elif not dest_item.exists() and self._copy_file(item, dest_item):
-                count += 1
-        return count
+                copied_files.extend(self._copy_tree_non_destructive_with_map(item, dest_item, project_root))
+            elif not dest_item.exists():
+                if self._copy_file(item, dest_item):
+                    copied_files.append(str(dest_item.relative_to(project_root)))
+        return copied_files
 
     # --- Private Rule Generation Strategies ---
 
@@ -169,41 +165,85 @@ class RuleManager:
     def install(self, rule_set: str = DEFAULT_RULE_SET, project_dir: Optional[str] = None,
                 clean_first: bool = False, assistants: Optional[List[str]] = None) -> int:
         target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        rule_set_source_dir = self.source_rules_dir / rule_set
+
+        pack_source_dir = self.source_packs_dir / rule_set
 
         if clean_first:
             self.clean_rules(str(target_root))
 
-        if not rule_set_source_dir.is_dir():
-            print(f"Error: Rule set '{rule_set}' not found.")
-            self.list_rules()
+        if not pack_source_dir.is_dir():
+            print(f"Error: Pack '{rule_set}' not found.")
+            self.list_packs()
             return 1
 
-        print(f"Installing framework components from rule set '{rule_set}'...")
+        # Create .rulebook-ai directory structure
+        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
+        rulebook_ai_packs_dir = rulebook_ai_dir / "packs"
+        rulebook_ai_dir.mkdir(exist_ok=True)
+        rulebook_ai_packs_dir.mkdir(exist_ok=True)
+
+        # Copy pack source to .rulebook-ai/packs
+        dest_pack_dir = rulebook_ai_packs_dir / rule_set
+        if dest_pack_dir.exists():
+            shutil.rmtree(dest_pack_dir)
+        shutil.copytree(pack_source_dir, dest_pack_dir)
+        print(f"- Stored pack '{rule_set}' in '{dest_pack_dir}'")
+
+        # Update selection.json
+        selection_file = rulebook_ai_dir / "selection.json"
+        selection = {"packs": []}
+        if selection_file.exists():
+            with open(selection_file, 'r') as f:
+                selection = json.load(f)
+
+        manifest_file = dest_pack_dir / "manifest.yaml"
+        if not manifest_file.exists():
+            print(f"Warning: manifest.yaml not found for pack '{rule_set}'. Using version 0.0.0.")
+            version = "0.0.0"
+        else:
+            with open(manifest_file, 'r') as f:
+                manifest = yaml.safe_load(f)
+                version = manifest.get("version", "0.0.0")
+
+        # Avoid adding duplicate packs
+        if not any(p['name'] == rule_set for p in selection['packs']):
+            selection['packs'].append({"name": rule_set, "version": version})
+
+        with open(selection_file, 'w') as f:
+            json.dump(selection, f, indent=2)
+        print(f"- Updated '{selection_file}'")
+
+
+        print(f"Installing framework components from pack '{rule_set}'...")
         # 1. Copy rule set (destructive)
-        if target_rules_dir.exists():
-            shutil.rmtree(target_rules_dir)
-        shutil.copytree(rule_set_source_dir, target_rules_dir)
-        print(f"- Copied rule set to '{target_rules_dir}'")
+        target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
+        rule_set_source_dir = pack_source_dir / 'rules'
+        if rule_set_source_dir.is_dir():
+            if target_rules_dir.exists():
+                shutil.rmtree(target_rules_dir)
+            shutil.copytree(rule_set_source_dir, target_rules_dir)
+            print(f"- Copied rule set to '{target_rules_dir}'")
 
-        # 2. Copy memory and tools (non-destructive)
-        for starter, target in [(self.source_memory_dir, TARGET_MEMORY_BANK_DIR), (self.source_tools_dir, TARGET_TOOLS_DIR)]:
-            count = self._copy_tree_non_destructive(starter, target_root / target)
-            if count > 0:
-                print(f"- Copied {count} files to '{target_root / target}'")
+        # 2. Copy memory and tools (non-destructive) and create file map
+        file_map = {"files": []}
+        for starter_subdir, target_dir_name in [("memory_starters", TARGET_MEMORY_BANK_DIR), ("tool_starters", TARGET_TOOLS_DIR)]:
+            starter_dir = pack_source_dir / starter_subdir
+            if starter_dir.is_dir():
+                target_dir = target_root / target_dir_name
+                copied = self._copy_tree_non_destructive_with_map(starter_dir, target_dir, target_root)
+                file_map["files"].extend(copied)
 
-        # 3. Copy env and requirements (non-destructive)
-        for filename in [SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]:
-            source_file = self.source_rules_dir.parent / filename
-            if source_file.is_file() and not (target_root / filename).exists():
-                self._copy_file(source_file, target_root / filename)
-                print(f"- Created '{target_root / filename}'")
-            
-        # 4. Per spec, run the sync logic
+        # Save the file map
+        if file_map["files"]:
+            file_map_path = dest_pack_dir / "file-map.json"
+            with open(file_map_path, 'w') as f:
+                json.dump(file_map, f, indent=2)
+            print(f"- Created file map with {len(file_map['files'])} entries in '{file_map_path}'")
+
+        # 3. Per spec, run the sync logic
         print("\nRunning initial synchronization...")
         self.sync(str(target_root), assistants)
-                
+
         print(f"\nInstallation complete.")
         return 0
 
@@ -281,7 +321,7 @@ class RuleManager:
         
         # 2. Remove the remaining framework directories and files
         print("\nCleaning all remaining framework components...")
-        for item in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR, SOURCE_ENV_EXAMPLE_FILE, SOURCE_REQUIREMENTS_TXT_FILE]:
+        for item in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR]:
             item_path = target_root / item
             if item_path.is_file() and item_path.exists():
                 item_path.unlink()
@@ -293,12 +333,12 @@ class RuleManager:
         print("\nFull cleaning complete.")
         return 0
 
-    def list_rules(self) -> None:
-        if not self.source_rules_dir.is_dir():
-            print(f"Error: Rules directory {self.source_rules_dir} not found.")
+    def list_packs(self) -> None:
+        if not self.source_packs_dir.is_dir():
+            print(f"Error: Packs directory {self.source_packs_dir} not found.")
             return
-        print("Available rule sets:")
-        for p in sorted([p.name for p in self.source_rules_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
+        print("Available packs:")
+        for p in sorted([p.name for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
             print(f"  - {p}")
         print(f"\nFor ratings and reviews of these rule sets, visit {RATINGS_REVIEWS_URL}")
 

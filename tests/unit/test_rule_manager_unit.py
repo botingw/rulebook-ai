@@ -94,10 +94,10 @@ def test_strategy_concatenate_files(rule_manager, tmp_path):
     assert "# Rule: 02-b.txt" in content
     assert "Content B" in content
 
-def test_copy_tree_non_destructive(rule_manager, tmp_path):
+def test_copy_tree_non_destructive_with_map(rule_manager, tmp_path):
     """
-    Verify that the non-destructive copy only adds new files and does not
-    overwrite existing ones.
+    Verify that the non-destructive copy only adds new files, does not
+    overwrite existing ones, and returns a correct map of copied files.
     """
     source_dir = tmp_path / "source"
     dest_dir = tmp_path / "dest"
@@ -113,8 +113,11 @@ def test_copy_tree_non_destructive(rule_manager, tmp_path):
     (dest_dir / "other_file.txt").write_text("Other")
 
     # Execute the copy
-    count = rule_manager._copy_tree_non_destructive(source_dir, dest_dir)
-    assert count == 1 # Only one new file should have been copied
+    copied_files = rule_manager._copy_tree_non_destructive_with_map(source_dir, dest_dir, tmp_path)
+
+    # Verify the returned map
+    assert len(copied_files) == 1
+    assert copied_files[0] == "dest/new_file.txt"
 
     # Verify destination contents
     assert (dest_dir / "new_file.txt").is_file()

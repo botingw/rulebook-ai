@@ -50,8 +50,8 @@ def create_parser() -> argparse.ArgumentParser:
     
     # --- Utility Commands ---
     subparsers.add_parser(
-        "list-rules",
-        help="List available rule sets and show ratings link.",
+        "list-packs",
+        help="List available packs and show ratings link.",
     )
     subparsers.add_parser("doctor", help="Check environment and setup for issues.")
     subparsers.add_parser("bug-report", help="Open the project issue tracker to report a bug.")
@@ -98,8 +98,8 @@ def handle_command(args: argparse.Namespace) -> int:
             print("Clean-all operation cancelled by user.")
             return 0
 
-    elif command == "list-rules":
-        rule_manager.list_rules()
+    elif command == "list-packs":
+        rule_manager.list_packs()
         return 0
 
     elif command == "doctor":
