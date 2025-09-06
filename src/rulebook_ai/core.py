@@ -285,13 +285,13 @@ class RuleManager:
     def clean_rules(self, project_dir: Optional[str] = None) -> int:
         target_root = Path(project_dir).absolute() if project_dir else self.project_root
         print("Cleaning rule-related files and directories...")
-        
+
         # 1. Remove the project_rules directory
         rules_dir = target_root / TARGET_PROJECT_RULES_DIR
         if rules_dir.exists():
             shutil.rmtree(rules_dir)
             print(f"- Removed: {rules_dir}")
-            
+
         # 2. Remove all generated assistant rules (data-driven)
         for spec in SUPPORTED_ASSISTANTS:
             path_to_clean = target_root / spec.clean_path
@@ -309,17 +309,23 @@ class RuleManager:
             elif path_to_clean.is_dir() and path_to_clean.exists():
                 shutil.rmtree(path_to_clean)
                 print(f"- Removed: {path_to_clean}")
-            
+
+        # 3. Remove internal state directory
+        rulebook_dir = target_root / TARGET_INTERNAL_STATE_DIR
+        if rulebook_dir.exists():
+            shutil.rmtree(rulebook_dir)
+            print(f"- Removed: {rulebook_dir}")
+
         print("\nRule cleaning complete.")
         return 0
 
-    def clean_all(self, project_dir: Optional[str] = None) -> int:
+    def clean(self, project_dir: Optional[str] = None) -> int:
         target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        
-        # 1. Run clean_rules first
+
+        # 1. Run clean_rules first (removes generated rules and .rulebook-ai)
         self.clean_rules(str(target_root))
-        
-        # 2. Remove the remaining framework directories and files
+
+        # 2. Remove the persistent framework directories
         print("\nCleaning all remaining framework components...")
         for item in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR]:
             item_path = target_root / item
@@ -329,18 +335,121 @@ class RuleManager:
             elif item_path.is_dir() and item_path.exists():
                 shutil.rmtree(item_path)
                 print(f"- Removed: {item_path}")
-        
+
         print("\nFull cleaning complete.")
         return 0
+
+    def clean_all(self, project_dir: Optional[str] = None) -> int:
+        """Backward-compatible wrapper for the old 'clean-all' command."""
+        return self.clean(project_dir)
 
     def list_packs(self) -> None:
         if not self.source_packs_dir.is_dir():
             print(f"Error: Packs directory {self.source_packs_dir} not found.")
             return
+
         print("Available packs:")
-        for p in sorted([p.name for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith('.')]):
-            print(f"  - {p}")
-        print(f"\nFor ratings and reviews of these rule sets, visit {RATINGS_REVIEWS_URL}")
+        for pack_dir in sorted(
+            [p for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith('.')],
+            key=lambda p: p.name,
+        ):
+            manifest_path = pack_dir / "manifest.yaml"
+            version = "unknown"
+            summary = ""
+            if manifest_path.exists():
+                with open(manifest_path, 'r') as f:
+                    manifest = yaml.safe_load(f) or {}
+                version = manifest.get("version", "unknown")
+                summary = manifest.get("summary", "")
+            print(f"  - {pack_dir.name} (v{version}) - {summary}")
+
+        print(f"\nFor ratings and reviews of these packs, visit {RATINGS_REVIEWS_URL}")
+
+    def add_pack(
+        self,
+        name: str,
+        project_dir: Optional[str] = None,
+        assistants: Optional[List[str]] = None,
+    ) -> int:
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
+        return self.install(name, str(target_root), False, assistants)
+
+    def remove_pack(
+        self,
+        name: str,
+        project_dir: Optional[str] = None,
+    ) -> int:
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
+        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
+        packs_dir = rulebook_ai_dir / "packs"
+        dest_pack_dir = packs_dir / name
+
+        if not dest_pack_dir.exists():
+            print(f"Pack '{name}' is not active.")
+            return 1
+
+        # Remove files introduced by this pack using file map
+        file_map_path = dest_pack_dir / "file-map.json"
+        if file_map_path.exists():
+            with open(file_map_path, "r") as f:
+                file_map = json.load(f)
+            for rel_path in file_map.get("files", []):
+                file_path = target_root / rel_path
+                if file_path.exists():
+                    file_path.unlink()
+                    # Remove empty parent directories up to project root
+                    parent = file_path.parent
+                    while parent != target_root and parent.exists() and not any(parent.iterdir()):
+                        parent.rmdir()
+                        parent = parent.parent
+
+        shutil.rmtree(dest_pack_dir)
+        print(f"- Removed pack directory '{dest_pack_dir}'")
+
+        # Update selection.json
+        selection_file = rulebook_ai_dir / "selection.json"
+        selection = {"packs": []}
+        if selection_file.exists():
+            with open(selection_file, "r") as f:
+                selection = json.load(f)
+        selection["packs"] = [p for p in selection.get("packs", []) if p["name"] != name]
+        with open(selection_file, "w") as f:
+            json.dump(selection, f, indent=2)
+        print(f"- Updated '{selection_file}'")
+
+        if not selection["packs"]:
+            print("\nNo packs remain. Cleaning generated rules...")
+            self.clean_rules(str(target_root))
+        else:
+            print("\nRunning synchronization...")
+            self.sync(str(target_root))
+
+        print(f"\nRemoval of pack '{name}' complete.")
+        return 0
+
+    def status(
+        self,
+        project_dir: Optional[str] = None,
+    ) -> int:
+        target_root = Path(project_dir).absolute() if project_dir else self.project_root
+        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
+        selection_file = rulebook_ai_dir / "selection.json"
+        if not selection_file.exists():
+            print("No packs are active.")
+            return 0
+
+        with open(selection_file, "r") as f:
+            selection = json.load(f)
+        packs = selection.get("packs", [])
+        if not packs:
+            print("No packs are active.")
+            return 0
+
+        print("Active packs:")
+        for idx, pack in enumerate(packs, start=1):
+            version = pack.get("version", "unknown")
+            print(f"  {idx}. {pack['name']} (v{version})")
+        return 0
 
     def report_bug(self) -> int:
         """Provide the project issue tracker URL for reporting bugs."""
