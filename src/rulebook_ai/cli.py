@@ -42,17 +42,42 @@ def create_parser() -> argparse.ArgumentParser:
     sync_assistant_group.add_argument("--all", "-a", action='store_const', dest='assistants', const=[a.name for a in SUPPORTED_ASSISTANTS], help="Sync rules for all supported assistants")
 
     # --- Clean Commands ---
-    clean_rules_parser = subparsers.add_parser("clean-rules", help="Remove all rule-related files (generated rules and project_rules/).")
-    clean_rules_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-    
-    clean_all_parser = subparsers.add_parser("clean-all", help="Remove ALL rulebook-ai components, including memory/ and tools/.")
-    clean_all_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-    
-    # --- Utility Commands ---
-    subparsers.add_parser(
-        "list-packs",
-        help="List available packs and show ratings link.",
+    clean_rules_parser = subparsers.add_parser(
+        "clean-rules",
+        help="Remove all rule-related files (.rulebook-ai and generated rules).",
     )
+    clean_rules_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    clean_parser = subparsers.add_parser(
+        "clean", help="Remove ALL rulebook-ai components, including memory/ and tools/."
+    )
+    clean_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    # Backward compatibility alias
+    clean_all_parser = subparsers.add_parser(
+        "clean-all",
+        help="Deprecated alias for 'clean'.",
+    )
+    clean_all_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    # --- Packs Commands ---
+    packs_parser = subparsers.add_parser("packs", help="Manage packs")
+    packs_subparsers = packs_parser.add_subparsers(dest="packs_command", required=True)
+
+    packs_subparsers.add_parser("list", help="List available packs")
+
+    add_parser = packs_subparsers.add_parser("add", help="Add a pack to the project")
+    add_parser.add_argument("name", help="Name of the pack to add")
+    add_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    remove_parser = packs_subparsers.add_parser("remove", help="Remove a pack from the project")
+    remove_parser.add_argument("name", help="Name of the pack to remove")
+    remove_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    status_parser = packs_subparsers.add_parser("status", help="Show active packs")
+    status_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+
+    # --- Utility Commands ---
     subparsers.add_parser("doctor", help="Check environment and setup for issues.")
     subparsers.add_parser("bug-report", help="Open the project issue tracker to report a bug.")
     subparsers.add_parser(
@@ -81,26 +106,33 @@ def handle_command(args: argparse.Namespace) -> int:
     elif command == "clean-rules":
         return rule_manager.clean_rules(args.project_dir)
 
-    elif command == "clean-all":
+    elif command in {"clean", "clean-all"}:
         print("WARNING: This will remove all rulebook-ai components from the target directory, including:")
         print("- project_rules/, memory/, and tools/ directories")
         print("- All generated assistant rule directories (.cursor/, .clinerules/, etc.)")
-        print("\nThis may delete user-customized files in 'memory/' and 'tools/'.")
+        print("\nThis may delete user-customized files in 'memory/' and 'tools'.")
         try:
             confirm = input("Are you sure you want to proceed? (yes/No): ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\nClean-all operation cancelled.")
+            print("\nClean operation cancelled.")
             return 1
         if confirm == 'yes':
             print("\nProceeding with full clean...")
-            return rule_manager.clean_all(args.project_dir)
+            return rule_manager.clean(args.project_dir)
         else:
-            print("Clean-all operation cancelled by user.")
+            print("Clean operation cancelled by user.")
             return 0
 
-    elif command == "list-packs":
-        rule_manager.list_packs()
-        return 0
+    elif command == "packs":
+        if args.packs_command == "list":
+            rule_manager.list_packs()
+            return 0
+        elif args.packs_command == "add":
+            return rule_manager.add_pack(args.name, args.project_dir)
+        elif args.packs_command == "remove":
+            return rule_manager.remove_pack(args.name, args.project_dir)
+        elif args.packs_command == "status":
+            return rule_manager.status(args.project_dir)
 
     elif command == "doctor":
         print("Doctor command not yet implemented in this version.")

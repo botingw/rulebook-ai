@@ -6,6 +6,7 @@ or via 'uvx rulebook-ai' after installing the uv package.
 """
 
 from .cli import main
+import sys
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
