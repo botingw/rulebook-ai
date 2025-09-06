@@ -1,5 +1,6 @@
 import os
 import shutil
+import json
 import re # For checking generated rule file formats
 import pytest
 
@@ -63,10 +64,32 @@ def test_install_default_rule_set(script_runner, tmp_path):
     warp_content = (tmp_target_repo_root / "WARP.md").read_text()
     assert expected_content in warp_content
 
+    # 6. Check for .rulebook-ai directory and its contents
+    rulebook_ai_dir = tmp_target_repo_root / ".rulebook-ai"
+    assert rulebook_ai_dir.is_dir()
 
-    # 6. Check for .env.example and requirements.txt
-    assert (tmp_target_repo_root / ".env.example").is_file()
-    assert (tmp_target_repo_root / "requirements.txt").is_file()
+    # 7. Check for selection.json
+    selection_file = rulebook_ai_dir / "selection.json"
+    assert selection_file.is_file()
+    with open(selection_file, 'r') as f:
+        selection = json.load(f)
+    assert selection["packs"][0]["name"] == "light-spec"
+
+    # 8. Check for copied pack source
+    copied_pack_dir = rulebook_ai_dir / "packs" / "light-spec"
+    assert copied_pack_dir.is_dir()
+    assert (copied_pack_dir / "manifest.yaml").is_file()
+
+    # 9. Check for file-map.json
+    file_map_file = copied_pack_dir / "file-map.json"
+    assert file_map_file.is_file()
+    with open(file_map_file, 'r') as f:
+        file_map = json.load(f)
+    assert len(file_map["files"]) > 0
+    assert "memory/docs/architecture_template.md" in file_map["files"]
+
+
+
 
 
 def test_install_specific_rule_set(script_runner, tmp_path):
@@ -88,6 +111,20 @@ def test_install_specific_rule_set(script_runner, tmp_path):
     assert (tmp_target_repo_root / ".gemini" / "GEMINI.md").is_file()
     assert (tmp_target_repo_root / "WARP.md").is_file()
     assert (tmp_target_repo_root / ".kilocode" / "rules").is_dir()
+
+    # Check for .rulebook-ai directory and its contents
+    rulebook_ai_dir = tmp_target_repo_root / ".rulebook-ai"
+    assert rulebook_ai_dir.is_dir()
+    selection_file = rulebook_ai_dir / "selection.json"
+    assert selection_file.is_file()
+    with open(selection_file, 'r') as f:
+        selection = json.load(f)
+    assert selection["packs"][0]["name"] == "heavy-spec"
+    copied_pack_dir = rulebook_ai_dir / "packs" / "heavy-spec"
+    assert copied_pack_dir.is_dir()
+    assert (copied_pack_dir / "manifest.yaml").is_file()
+    file_map_file = copied_pack_dir / "file-map.json"
+    assert file_map_file.is_file()
 
 
 def test_sync_after_manual_project_rules_modification(script_runner, tmp_path):
@@ -189,8 +226,6 @@ def test_clean_all_with_confirmation_yes(script_runner, tmp_path):
     assert not (tmp_target_repo_root / "CLAUDE.md").exists()
     assert not (tmp_target_repo_root / "AGENTS.md").exists()
     assert not (tmp_target_repo_root / ".gemini").exists()
-    assert not (tmp_target_repo_root / ".env.example").exists()
-    assert not (tmp_target_repo_root / "requirements.txt").exists()
 
 
 def test_clean_all_with_confirmation_no(script_runner, tmp_path):
@@ -204,8 +239,6 @@ def test_clean_all_with_confirmation_no(script_runner, tmp_path):
 
     assert (tmp_target_repo_root / TARGET_PROJECT_RULES_DIR).is_dir()
     assert (tmp_target_repo_root / TARGET_MEMORY_BANK_DIR).is_dir()
-    assert (tmp_target_repo_root / ".env.example").is_file()
-    assert (tmp_target_repo_root / "requirements.txt").is_file()
     assert (tmp_target_repo_root / ".windsurf" / "rules").is_dir()
     assert (tmp_target_repo_root / "CLAUDE.md").is_file()
     assert (tmp_target_repo_root / "AGENTS.md").is_file()
@@ -214,13 +247,13 @@ def test_clean_all_with_confirmation_no(script_runner, tmp_path):
     assert "Clean-all operation cancelled by user." in result.stdout
 
 
-def test_list_rules(script_runner):
-    """Test the `list-rules` command."""
-    result = script_runner(["list-rules"])
+def test_list_packs(script_runner):
+    """Test the `list-packs` command."""
+    result = script_runner(["list-packs"])
     assert result.returncode == 0, f"Script failed. STDERR:\n{result.stderr}\nSTDOUT:\n{result.stdout}"
 
     stdout = result.stdout
-    assert "Available rule sets:" in stdout
+    assert "Available packs:" in stdout
     assert "- heavy-spec" in stdout
     assert "- light-spec" in stdout
     assert "https://github.com/botingw/rulebook-ai/wiki/Ratings-%26-Reviews-(Rulesets)" in stdout
