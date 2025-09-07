@@ -1,100 +1,49 @@
-# TDD Plan: Composable Packs
+# TDD Plan: Improved UX for Composable Packs
 
-This document tracks the tests for the composable packs feature, with a focus on integration tests for the CLI commands.
+This document outlines the updated test strategy for the refined CLI design that separates configuration from application.
 
-## Phase 1: Integration Tests
+## Phase 1: Packs Command Group
 
 ### `packs list`
-
-- [x] `test_packs_list_success`: The command runs successfully and exits with code 0.
-- [x] `test_packs_list_output_contains_pack_names`: The output includes the names of all available packs (e.g., "light-spec", "heavy-spec").
-- [x] `test_packs_list_output_contains_manifest_data`: The output displays the `version` and `summary` for each pack, read from its `manifest.yaml`.
+- [ ] `test_packs_list_shows_manifest_info`: Output lists pack names, versions, and descriptions.
 
 ### `packs add <name>`
-
-- [x] `test_add_first_pack`: Add a pack to a new project.
-    - [x] Verify `.rulebook-ai/` directory is created.
-    - [x] Verify `.rulebook-ai/selection.json` is created and contains the pack's name and version.
-    - [x] Verify the full pack is copied to `.rulebook-ai/packs/<name>/`.
-    - [x] Verify `memory/` and `tools/` directories are created and populated with starter files.
-    - [x] Verify an implicit sync runs and generated assistant rules are present.
-- [x] `test_add_second_pack`: Add a second pack to the project.
-    - [x] Verify `selection.json` is updated with the second pack.
-    - [x] Verify the second pack is copied to `.rulebook-ai/packs/<new-pack>/`.
-    - [x] Verify `memory/` and `tools/` are updated by merging the new files without overwriting existing ones.
-    - [x] Verify implicit sync runs and generated rules are updated based on the combined packs.
-- [ ] `test_add_existing_pack_refreshes`: Add a pack that is already active.
-    - [ ] Verify the pack's content in `.rulebook-ai/packs/<name>/` is updated to match the source.
-    - [ ] Verify `selection.json` remains unchanged.
-    - [ ] Verify an implicit sync is triggered.
-- [x] `test_add_non_existent_pack`: Attempt to add a pack that does not exist.
-    - [x] Verify the command fails with a non-zero exit code.
-    - [x] Verify an informative error message is printed.
+- [ ] `test_add_pack_updates_selection`: Pack added to `selection.json` and copied to `.rulebook-ai/packs/` without touching `memory/` or `tools/`.
+- [ ] `test_add_multiple_packs`: Multiple packs can be added in one command.
+- [ ] `test_add_nonexistent_pack_fails`: Adding unknown pack exits with error.
 
 ### `packs remove <name>`
-
-- [x] `test_remove_pack`: Remove an active pack.
-    - [x] Verify the pack is removed from `selection.json`.
-    - [x] Verify the pack's directory is deleted from `.rulebook-ai/packs/`.
-    - [x] Verify starter files associated with the pack are removed from `memory/` and `tools/` (using a file map).
-    - [x] Verify an implicit sync runs and generated rules are updated.
-- [x] `test_remove_last_pack`: Remove the only active pack.
-    - [x] Verify `selection.json` becomes an empty list.
-    - [x] Verify `.rulebook-ai/packs/` becomes empty.
-    - [x] Verify `memory/` and `tools/` become empty (or are removed).
-- [x] `test_remove_non_existent_pack`: Attempt to remove a pack that is not active.
-    - [x] Verify the command fails with a non-zero exit code.
-    - [x] Verify an informative error message is printed.
+- [ ] `test_remove_pack_updates_selection`: Pack removed from `selection.json` and `.rulebook-ai/packs/`.
+- [ ] `test_remove_pack_does_not_touch_context`: `memory/` and `tools/` remain unchanged.
+- [ ] `test_remove_nonexistent_pack_fails`: Removing unknown pack exits with error.
 
 ### `packs status`
+- [ ] `test_packs_status_lists_library_and_profiles`: Displays all packs and profiles defined in `selection.json`.
 
-- [x] `test_status_no_packs`: Run `packs status` in a project with no active packs.
-    - [x] Verify the output indicates that no packs are active.
-- [x] `test_status_one_pack`: Run `packs status` with one active pack.
-    - [x] Verify the output correctly displays the pack's name and version.
-- [x] `test_status_multiple_packs`: Run `packs status` with multiple active packs.
-    - [x] Verify the output lists all packs in the correct order of precedence.
+## Phase 2: Profiles Command Group
+- [ ] `test_profiles_create_and_list`: Creating a profile registers it in `selection.json` and `profiles list` shows it.
+- [ ] `test_profiles_add_and_remove_packs`: Packs can be added to and removed from a profile.
+- [ ] `test_profiles_delete`: Deleting a profile removes it from `selection.json`.
 
-### `sync`
+## Phase 3: Project Sync
+- [ ] `test_project_sync_all_packs`: Generates rules using all packs and records entries in `sync_status.json`.
+- [ ] `test_project_sync_with_profile`: Only packs from the specified profile are used.
+- [ ] `test_project_sync_with_pack_flags`: Only explicitly flagged packs are used.
+- [ ] `test_project_sync_updates_file_manifest`: `file_manifest.json` reflects newly created context files.
 
-- [x] `test_sync_no_flags`: Run `sync` to regenerate rules for all active packs.
-    - [x] Verify generated rules reflect the combined content of all packs.
-- [ ] `test_sync_rebuild`: Run `sync --rebuild`.
-    - [ ] Verify `memory/` and `tools/` are purged and fully repopulated from active packs.
-- [ ] `test_sync_force`: Test conflict resolution with `sync --force`.
-    - [ ] Create a conflict where a later pack has a file that also exists from an earlier pack.
-    - [ ] Verify the file from the later pack overwrites the earlier one.
-- [ ] `test_sync_strict`: Test conflict resolution with `sync --strict`.
-    - [ ] Create a file conflict.
-    - [ ] Verify the command fails with a non-zero exit code and an error message.
+## Phase 4: Project Status
+- [ ] `test_project_status_reports_last_sync`: Shows timestamp, mode (all/profile/pack), and pack count for each assistant.
 
-### Target Platform Rules
+## Phase 5: Cleaning
+- [ ] `test_project_clean_requires_confirmation`: Destructive action prompts the user and removes `.rulebook-ai/`, `memory/`, `tools/`, and generated rules upon confirmation.
+- [ ] `test_project_clean_aborts_on_decline`: Declining the prompt leaves existing files untouched.
+- [ ] `test_project_clean_rules_preserves_context`: `.rulebook-ai/` and rules are removed while `memory/` and `tools/` remain.
 
-- [x] `test_sync_generates_platform_rules`: After adding a pack, run `sync` and verify platform-specific artifacts for multi-file, mode-based, and single-file assistants are created.
-- [x] `test_clean_rules_removes_platform_artifacts`: After generating platform rules, run `clean-rules` and confirm those artifacts are removed while `memory/` and `tools/` remain.
+## Phase 6: Unit Tests
+- [ ] `test_selection_json_profiles_schema`: Unit test for reading/writing profiles in `selection.json`.
+- [ ] `test_sync_status_recording`: Unit test ensuring `project sync` writes correct data to `sync_status.json`.
+- [ ] `test_rule_generation_idempotence`: Running `project sync` twice without changes produces identical results.
 
-### `clean`
-
-- [x] `test_clean_confirm_yes`: Run `clean` and provide "yes" to the confirmation prompt.
-    - [x] Verify `.rulebook-ai/`, `memory/`, `tools/`, and all generated rule artifacts are removed.
-- [x] `test_clean_confirm_no`: Run `clean` and provide "no" to the confirmation prompt.
-    - [x] Verify no files or directories are removed.
-
-### `clean-rules`
-
-- [x] `test_clean_rules`: Run the `clean-rules` command.
-    - [x] Verify `.rulebook-ai/` and generated rule artifacts are removed.
-    - [x] Verify `memory/` and `tools/` are preserved.
-
-## Phase 2: Unit Tests
-
-This section outlines the unit tests for the `RuleManager` class in `core.py`.
-
-### `RuleManager`
-
-- [x] `test_list_packs`: Mocks the filesystem and verifies the method correctly finds and parses pack manifests.
-- [ ] `test_add_pack_logic`: Tests the core logic of adding a pack, mocking filesystem interactions.
-- [ ] `test_remove_pack_logic`: Tests the core logic of removing a pack.
-- [ ] `test_sync_logic`: Tests the file composition and conflict resolution logic in isolation.
-- [ ] `test_clean_logic`: Tests the file/directory removal logic.
-- [ ] `test_status_logic`: Tests reading and parsing of `selection.json`.
+## Phase 7: Deferred Interactive Features (P3)
+- [ ] Tests for `project clean-context` once implemented.
+- [ ] Tests for interactive conflict resolution during `project sync`.
