@@ -89,3 +89,18 @@ Track the implementation work required to migrate the CLI to the composable Pack
 | **6.2** | Update unit tests for `RuleManager` pack logic. | P0 | Completed | 4.2 |
 | **6.2b** | Add unit tests for add/remove/sync/clean/status logic. | P2 | To Do | 6.2 |
 | **6.3** | Document workflows and examples in README and feature docs. | P1 | To Do | 6.1 |
+
+### Phase 7: UX Refactor (Decouple Configuration from Application)
+
+**Description:** Update the CLI to match the improved user-experience design with explicit project syncing and profiles.
+
+| Task ID | Description | Importance | Status | Dependencies |
+|:--------|:------------|:-----------|:-------|:-------------|
+| **7.1** | Update `packs add` and `packs remove` to configuration-only commands (remove implicit sync). Requires revisiting tasks **3.2** and **3.3**. | P0 | To Do | 4.2 |
+| **7.2** | Introduce Profiles command group and extend `selection.json` schema. | P0 | To Do | 7.1 |
+| **7.3** | Implement `project sync` with `--pack` and `--profile` flags, updating `file_manifest.json` and writing `sync_status.json`. Supersedes task **3.5**. | P0 | To Do | 7.2 |
+| **7.4** | Implement `project status` command to read `sync_status.json`. | P1 | To Do | 7.3 |
+| **7.5** | Replace top-level `clean` and `clean-rules` with `project clean` and `project clean-rules`, preserving confirmation prompt for `project clean`. Update references from task **3.6**. | P1 | To Do | 7.3 |
+| **7.6** | Review existing tests and remove or update ones tied to implicit sync or deprecated commands. | P1 | To Do | 7.3 |
+| **7.7** | Add integration tests for `profiles` and `project` command group workflows. | P0 | To Do | 7.3 |
+| **7.8** | Plan interactive features (`project clean-context`, conflict prompts) for future releases. | P3 | To Do | 7.3 |
