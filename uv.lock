@@ -1456,6 +1456,7 @@ dependencies = [
     { name = "openai" },
     { name = "playwright" },
     { name = "python-dotenv" },
+    { name = "pyyaml" },
 ]
 
 [package.optional-dependencies]
@@ -1485,6 +1486,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.5" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.0.292" },
     { name = "tox", marker = "extra == 'dev'", specifier = ">=4.0.0" },
     { name = "unittest2", marker = "extra == 'dev'", specifier = ">=1.1.0" },
