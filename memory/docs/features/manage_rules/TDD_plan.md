@@ -2,6 +2,32 @@
 
 This document outlines the updated test strategy for the refined CLI design that separates configuration from application.
 
+## Phase 0: Full Test Suite Audit and Migration
+
+**Description:** Before implementing new tests, audit the entire existing test suite for compatibility with the new, decoupled workflow. This is critical to prevent test debt and ensure a stable foundation.
+
+- [ ] **Task 0.1: Audit all existing integration tests**
+    - **Description:** Review every test file in `tests/integration/` to assess its compatibility with the new architecture.
+    - **Checklist for each test:**
+        - [ ] Does it use a test setup helper/fixture that needs updating?
+        - [ ] Does it call a command that has been renamed or moved (e.g., `clean` -> `project clean`)?
+        - [ ] Does it assert specific CLI output text that may have changed?
+        - [ ] Does it rely on the side-effects of `packs add/remove` (implicit sync)?
+        - [ ] Does it test a command (like `bug-report`) that internally depends on now-changed core logic?
+
+- [ ] **Task 0.2: Categorize and Migrate Tests**
+    - **Description:** Based on the audit, categorize each legacy test and take action.
+    - **Actions:**
+        - **Obsolete:** For tests of deprecated features (e.g., `test_cli_commands.py`, `test_rule_manager_integration.py`). **Action: Delete.**
+        - **Requires Update:** For tests whose intent is still valid but whose implementation is broken (e.g., tests for `packs add` that expected implicit sync). **Action: Update.**
+        - **Safe:** For tests that are genuinely independent of the refactor. **Action: Keep.**
+
+- [ ] **Task 0.3: Establish a Clean Test Baseline**
+    - **Description:** After migrating and deleting tests, ensure the entire test suite passes before proceeding.
+    - **Action:** Run `pytest tests/` and resolve any remaining failures.
+
+---
+
 ## Phase 1: Packs Command Group
 
 ### `packs list`
