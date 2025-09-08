@@ -1,170 +1,213 @@
-"""
-Command-line interface for rulebook-ai.
+"""Command line interface for rulebook-ai."""
 
-This module provides a modern CLI interface for the rulebook-ai package,
-built on the core functionality in the core module.
-"""
+from __future__ import annotations
 
 import argparse
 import sys
 from typing import List, Optional
 
-from .core import RuleManager, DEFAULT_RULE_SET
 from .assistants import SUPPORTED_ASSISTANTS
+from .core import RuleManager
 
 
 def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser for the CLI."""
     parser = argparse.ArgumentParser(
-        description="Manage LLM rulesets and assistant configurations for various AI assistants.",
-        formatter_class=argparse.RawTextHelpFormatter
+        description="Manage composable rulebook-ai packs and project context",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Command to execute")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # --- Install Command ---
-    install_parser = subparsers.add_parser("install", help="Install a rule set and framework components into a project.")
-    install_parser.add_argument("--rule-set", "-r", default=DEFAULT_RULE_SET, help=f"Rule set to install (default: {DEFAULT_RULE_SET})")
-    install_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-    install_parser.add_argument("--clean", "-c", action="store_true", help="Clean existing rules before installation")
-    
-    assistant_group = install_parser.add_argument_group('assistant selection (if omitted, all are generated)')
+    # ------------------------------------------------------------------
+    # Packs command group
+    # ------------------------------------------------------------------
+
+    packs_parser = subparsers.add_parser("packs", help="Manage pack library")
+    packs_sub = packs_parser.add_subparsers(dest="packs_command", required=True)
+
+    list_parser = packs_sub.add_parser("list", help="List available packs")
+    list_parser.add_argument("--project-dir", "-p")
+
+    add_parser = packs_sub.add_parser("add", help="Add pack(s) to the library")
+    add_parser.add_argument("names", nargs="+")
+    add_parser.add_argument("--project-dir", "-p")
+
+    remove_parser = packs_sub.add_parser("remove", help="Remove pack(s) from the library")
+    remove_parser.add_argument("names", nargs="+")
+    remove_parser.add_argument("--project-dir", "-p")
+
+    status_parser = packs_sub.add_parser("status", help="Show configured packs and profiles")
+    status_parser.add_argument("--project-dir", "-p")
+
+    # ------------------------------------------------------------------
+    # Profiles command group
+    # ------------------------------------------------------------------
+
+    profiles_parser = subparsers.add_parser("profiles", help="Manage pack profiles")
+    profiles_sub = profiles_parser.add_subparsers(dest="profiles_command", required=True)
+
+    create_p = profiles_sub.add_parser("create", help="Create a profile")
+    create_p.add_argument("name")
+    create_p.add_argument("--project-dir", "-p")
+
+    delete_p = profiles_sub.add_parser("delete", help="Delete a profile")
+    delete_p.add_argument("name")
+    delete_p.add_argument("--project-dir", "-p")
+
+    add_to = profiles_sub.add_parser("add", help="Add pack to profile")
+    add_to.add_argument("pack")
+    add_to.add_argument("--to", dest="profile", required=True)
+    add_to.add_argument("--project-dir", "-p")
+
+    remove_from = profiles_sub.add_parser("remove", help="Remove pack from profile")
+    remove_from.add_argument("pack")
+    remove_from.add_argument("--from", dest="profile", required=True)
+    remove_from.add_argument("--project-dir", "-p")
+
+    list_p = profiles_sub.add_parser("list", help="List profiles")
+    list_p.add_argument("--project-dir", "-p")
+
+    # ------------------------------------------------------------------
+    # Project command group
+    # ------------------------------------------------------------------
+
+    project_parser = subparsers.add_parser("project", help="Operate on project context")
+    project_sub = project_parser.add_subparsers(dest="project_command", required=True)
+
+    sync_parser = project_sub.add_parser("sync", help="Compose context and generate rules")
+    sync_parser.add_argument("--project-dir", "-p")
+    sync_parser.add_argument("--profile")
+    sync_parser.add_argument("--pack", action="append", dest="packs")
+    assist_group = sync_parser.add_argument_group("assistant selection")
     for assistant in SUPPORTED_ASSISTANTS:
-        assistant_group.add_argument(f"--{assistant.name}", action='append_const', dest='assistants', const=assistant.name, help=f"Generate rules for {assistant.display_name}")
-    assistant_group.add_argument("--all", "-a", action='store_const', dest='assistants', const=[a.name for a in SUPPORTED_ASSISTANTS], help="Generate rules for all supported assistants")
-
-    # --- Sync Command ---
-    sync_parser = subparsers.add_parser("sync", help="Synchronize assistant rules from the project_rules/ directory.")
-    sync_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-
-    sync_assistant_group = sync_parser.add_argument_group('assistant selection (if omitted, syncs existing)')
-    for assistant in SUPPORTED_ASSISTANTS:
-        sync_assistant_group.add_argument(f"--{assistant.name}", action='append_const', dest='assistants', const=assistant.name, help=f"Sync rules for {assistant.display_name}")
-    sync_assistant_group.add_argument("--all", "-a", action='store_const', dest='assistants', const=[a.name for a in SUPPORTED_ASSISTANTS], help="Sync rules for all supported assistants")
-
-    # --- Clean Commands ---
-    clean_rules_parser = subparsers.add_parser(
-        "clean-rules",
-        help="Remove all rule-related files (.rulebook-ai and generated rules).",
+        assist_group.add_argument(
+            f"--{assistant.name}",
+            action="append_const",
+            dest="assistants",
+            const=assistant.name,
+            help=f"Generate rules for {assistant.display_name}",
+        )
+    assist_group.add_argument(
+        "--all",
+        action="store_const",
+        dest="assistants",
+        const=[a.name for a in SUPPORTED_ASSISTANTS],
+        help="Generate rules for all supported assistants",
     )
-    clean_rules_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
 
-    clean_parser = subparsers.add_parser(
-        "clean", help="Remove ALL rulebook-ai components, including memory/ and tools/."
+    status_p = project_sub.add_parser("status", help="Show last sync info")
+    status_p.add_argument("--project-dir", "-p")
+
+    clean_p = project_sub.add_parser("clean", help="Remove all rulebook-ai artifacts")
+    clean_p.add_argument("--project-dir", "-p")
+
+    clean_r = project_sub.add_parser("clean-rules", help="Remove generated rules and state")
+    clean_r.add_argument("--project-dir", "-p")
+
+    clean_ctx = project_sub.add_parser(
+        "clean-context", help="Remove orphaned context files"
     )
-    clean_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+    clean_ctx.add_argument("--project-dir", "-p")
+    clean_ctx.add_argument("--action", choices=["delete", "keep"])
+    clean_ctx.add_argument("--force", action="store_true")
 
-    # Backward compatibility alias
-    clean_all_parser = subparsers.add_parser(
-        "clean-all",
-        help="Deprecated alias for 'clean'.",
-    )
-    clean_all_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
+    # ------------------------------------------------------------------
+    # Utility commands
+    # ------------------------------------------------------------------
 
-    # --- Packs Commands ---
-    packs_parser = subparsers.add_parser("packs", help="Manage packs")
-    packs_subparsers = packs_parser.add_subparsers(dest="packs_command", required=True)
-
-    packs_subparsers.add_parser("list", help="List available packs")
-
-    add_parser = packs_subparsers.add_parser("add", help="Add a pack to the project")
-    add_parser.add_argument("name", help="Name of the pack to add")
-    add_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-
-    remove_parser = packs_subparsers.add_parser("remove", help="Remove a pack from the project")
-    remove_parser.add_argument("name", help="Name of the pack to remove")
-    remove_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-
-    status_parser = packs_subparsers.add_parser("status", help="Show active packs")
-    status_parser.add_argument("--project-dir", "-p", help="Target project directory (default: current directory)")
-
-    # --- Utility Commands ---
-    subparsers.add_parser("doctor", help="Check environment and setup for issues.")
-    subparsers.add_parser("bug-report", help="Open the project issue tracker to report a bug.")
-    subparsers.add_parser(
-        "rate-ruleset",
-        help="Open the ratings & reviews wiki page for rulesets.",
-    )
+    subparsers.add_parser("bug-report", help="Open issue tracker")
+    subparsers.add_parser("rate-ruleset", help="Open ratings & reviews page")
 
     return parser
 
 
 def handle_command(args: argparse.Namespace) -> int:
-    """Handle the parsed command-line arguments."""
-    # Instantiate RuleManager with the project directory if the command needs it
-    project_dir = args.project_dir if hasattr(args, 'project_dir') else None
-    rule_manager = RuleManager(project_dir)
+    project_dir = getattr(args, "project_dir", None)
+    rm = RuleManager(project_dir)
 
-    command = args.command
-    if command == "install":
-        # If no assistants are specified, RuleManager's install->sync will handle the default
-        return rule_manager.install(args.rule_set, args.project_dir, args.clean, args.assistants)
-    
-    elif command == "sync":
-        # If assistants is None, RuleManager's sync will auto-detect
-        return rule_manager.sync(args.project_dir, args.assistants)
-
-    elif command == "clean-rules":
-        return rule_manager.clean_rules(args.project_dir)
-
-    elif command in {"clean", "clean-all"}:
-        print("WARNING: This will remove all rulebook-ai components from the target directory, including:")
-        print("- project_rules/, memory/, and tools/ directories")
-        print("- All generated assistant rule directories (.cursor/, .clinerules/, etc.)")
-        print("\nThis may delete user-customized files in 'memory/' and 'tools'.")
-        try:
-            confirm = input("Are you sure you want to proceed? (yes/No): ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print("\nClean operation cancelled.")
-            return 1
-        if confirm == 'yes':
-            print("\nProceeding with full clean...")
-            return rule_manager.clean(args.project_dir)
-        else:
-            print("Clean operation cancelled by user.")
+    if args.command == "packs":
+        cmd = args.packs_command
+        if cmd == "list":
+            rm.list_packs()
             return 0
+        if cmd == "add":
+            rc = 0
+            for name in args.names:
+                result = rm.add_pack(name, project_dir)
+                if result != 0:
+                    rc = result
+            return rc
+        if cmd == "remove":
+            rc = 0
+            for name in args.names:
+                result = rm.remove_pack(name, project_dir)
+                if result != 0:
+                    rc = result
+            return rc
+        if cmd == "status":
+            return rm.packs_status(project_dir)
 
-    elif command == "packs":
-        if args.packs_command == "list":
-            rule_manager.list_packs()
+    elif args.command == "profiles":
+        cmd = args.profiles_command
+        if cmd == "create":
+            return rm.create_profile(args.name, project_dir)
+        if cmd == "delete":
+            return rm.delete_profile(args.name, project_dir)
+        if cmd == "add":
+            return rm.add_pack_to_profile(args.pack, args.profile, project_dir)
+        if cmd == "remove":
+            return rm.remove_pack_from_profile(args.pack, args.profile, project_dir)
+        if cmd == "list":
+            return rm.list_profiles(project_dir)
+
+    elif args.command == "project":
+        cmd = args.project_command
+        if cmd == "sync":
+            return rm.project_sync(
+                assistants=getattr(args, "assistants", None),
+                profile=args.profile,
+                packs=getattr(args, "packs", None),
+                project_dir=project_dir,
+            )
+        if cmd == "status":
+            return rm.project_status(project_dir)
+        if cmd == "clean":
+            print(
+                "WARNING: This will remove .rulebook-ai/, memory/, tools/, and generated rules."
+            )
+            try:
+                confirm = input("Are you sure? (yes/No): ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                print("\nClean cancelled.")
+                return 1
+            if confirm == "yes":
+                return rm.project_clean(project_dir)
+            print("Clean cancelled by user.")
             return 0
-        elif args.packs_command == "add":
-            return rule_manager.add_pack(args.name, args.project_dir)
-        elif args.packs_command == "remove":
-            return rule_manager.remove_pack(args.name, args.project_dir)
-        elif args.packs_command == "status":
-            return rule_manager.status(args.project_dir)
+        if cmd == "clean-rules":
+            return rm.project_clean_rules(project_dir)
+        if cmd == "clean-context":
+            return rm.project_clean_context(
+                project_dir=project_dir, action=args.action, force=args.force
+            )
 
-    elif command == "doctor":
-        print("Doctor command not yet implemented in this version.")
-        return 0
-
-    elif command == "bug-report":
-        return rule_manager.report_bug()
-
-    elif command == "rate-ruleset":
-        return rule_manager.rate_ruleset()
+    elif args.command == "bug-report":
+        return rm.report_bug()
+    elif args.command == "rate-ruleset":
+        return rm.rate_ruleset()
 
     return 1
 
 
 def main(argv: Optional[List[str]] = None) -> int:
-    """Main entry point for the CLI."""
     parser = create_parser()
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
-    
-    if not args.command:
-        parser.print_help()
-        return 1
-
     try:
         return handle_command(args)
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}", file=sys.stderr)
-        # Consider adding a traceback here for debugging if needed
-        # import traceback
-        # traceback.print_exc()
+    except Exception as e:  # pragma: no cover - top level safety
+        print(f"An unexpected error occurred: {e}")
         return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

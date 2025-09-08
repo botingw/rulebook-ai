@@ -85,7 +85,8 @@ Track the implementation work required to migrate the CLI to the composable Pack
 | **6.1c** | Add integration test for `packs list` workflow. | P0 | Completed | 5.1a |
 | **6.1d** | Expand integration tests for pack edge cases (multi-pack add, error handling). | P1 | Completed | 6.1a |
 | **6.1e** | Add integration tests for platform rule generation and cleanup. | P1 | Completed | 5.2, 5.3 |
-| **6.1f** | Remove obsolete integration tests (`test_cli_commands.py`, `test_rule_manager_integration.py`, `test_tools_integration.py`). | P1 | To Do | 6.1e |
+| **6.1f** | Audit legacy integration tests (`test_cli_commands.py`, `test_rule_manager_integration.py`, `test_tools_integration.py`) and retire or refactor as needed. | P1 | Completed | 6.1e |
+| **6.1g** | Restore package smoke test (`test_package_installation.py`) to verify importability and basic structure. | P2 | Completed | 6.1f |
 | **6.2** | Update unit tests for `RuleManager` pack logic. | P0 | Completed | 4.2 |
 | **6.2b** | Add unit tests for add/remove/sync/clean/status logic. | P2 | To Do | 6.2 |
 | **6.3** | Document workflows and examples in README and feature docs. | P1 | To Do | 6.1 |
@@ -96,11 +97,11 @@ Track the implementation work required to migrate the CLI to the composable Pack
 
 | Task ID | Description | Importance | Status | Dependencies |
 |:--------|:------------|:-----------|:-------|:-------------|
-| **7.1** | Update `packs add` and `packs remove` to configuration-only commands (remove implicit sync). Requires revisiting tasks **3.2** and **3.3**. | P0 | To Do | 4.2 |
-| **7.2** | Introduce Profiles command group and extend `selection.json` schema. | P0 | To Do | 7.1 |
-| **7.3** | Implement `project sync` with `--pack` and `--profile` flags, updating `file_manifest.json` and writing `sync_status.json`. Supersedes task **3.5**. | P0 | To Do | 7.2 |
-| **7.4** | Implement `project status` command to read `sync_status.json`. | P1 | To Do | 7.3 |
-| **7.5** | Replace top-level `clean` and `clean-rules` with `project clean` and `project clean-rules`, preserving confirmation prompt for `project clean`. Update references from task **3.6**. | P1 | To Do | 7.3 |
-| **7.6** | Review existing tests and remove or update ones tied to implicit sync or deprecated commands. | P1 | To Do | 7.3 |
-| **7.7** | Add integration tests for `profiles` and `project` command group workflows. | P0 | To Do | 7.3 |
-| **7.8** | Plan interactive features (`project clean-context`, conflict prompts) for future releases. | P3 | To Do | 7.3 |
+| **7.1** | Update `packs add` and `packs remove` to configuration-only commands (remove implicit sync). Requires revisiting tasks **3.2** and **3.3**. | P0 | Completed | 4.2 |
+| **7.2** | Introduce Profiles command group and extend `selection.json` schema. | P0 | Completed | 7.1 |
+| **7.3** | Implement `project sync` with `--pack` and `--profile` flags, updating `file_manifest.json` and writing `sync_status.json`. Supersedes task **3.5**. | P0 | Completed | 7.2 |
+| **7.4** | Implement `project status` command to read `sync_status.json`. | P1 | Completed | 7.3 |
+| **7.5** | Replace top-level `clean` and `clean-rules` with `project clean` and `project clean-rules`, preserving confirmation prompt for `project clean`. Update references from task **3.6**. | P1 | Completed | 7.3 |
+| **7.6** | Review existing tests and remove or update ones tied to implicit sync or deprecated commands. | P1 | Completed | 7.3 |
+| **7.7** | Add integration tests for `profiles` and `project` command group workflows. | P0 | Completed | 7.3 |
+| **7.8** | Implement `project clean-context` command with non-interactive flags; plan further interactive prompts. | P3 | Completed | 7.3 |

@@ -76,6 +76,11 @@ Commands are grouped into **packs**, **profiles**, and **project** categories.
     *   **Output:** For each assistant, reports last sync timestamp and whether context came from all packs, a profile, or an explicit pack list.
     *   **Use Case:** Verify the live state of the workspace.
 
+*   **`rulebook-ai project clean-context [--action delete|keep] [--force]`**
+    *   **Action:** Removes orphaned starter files from `memory/` and `tools/` using `file_manifest.json`.
+    *   **Behavior:** Lists files tied to removed packs and prompts to delete or keep them. `--action` sets the default choice and `--force` skips prompts.
+    *   **Use Case:** Safely clean up context files after removing packs.
+
 *   **`rulebook-ai project clean`**
     *   **Action:** Removes `.rulebook-ai/`, `memory/`, `tools/`, and all generated rules.
     *   **Behavior:** Destructive operation that **must prompt for user confirmation**. Parent directories (e.g., `.github/`) are removed if they become empty.

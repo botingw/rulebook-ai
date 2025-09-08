@@ -1,33 +1,30 @@
-"""
-Core functionality for rulebook-ai rule management.
+"""Core logic for the rulebook-ai CLI."""
 
-This module provides the core functionality for managing AI rulebooks,
-separated from the CLI interface for better modularity and testing.
-"""
+from __future__ import annotations
 
-import os
-import shutil
-import re
 import json
-import yaml
+import os
+import re
+import shutil
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
+
 import webbrowser
+import yaml
 
-from .assistants import AssistantSpec, SUPPORTED_ASSISTANTS, ASSISTANT_MAP
+from .assistants import ASSISTANT_MAP, SUPPORTED_ASSISTANTS, AssistantSpec
 
-# --- Constants ---
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
 SOURCE_PACKS_DIR = "packs"
 
-TARGET_PROJECT_RULES_DIR = "project_rules"
 TARGET_MEMORY_BANK_DIR = "memory"
 TARGET_TOOLS_DIR = "tools"
 TARGET_INTERNAL_STATE_DIR = ".rulebook-ai"
-
-DEFAULT_RULE_SET = "light-spec"
-
-SOURCE_ENV_EXAMPLE_FILE = ".env.example"
-SOURCE_REQUIREMENTS_TXT_FILE = "requirements.txt"
 
 BUG_REPORT_URL = "https://github.com/botingw/rulebook-ai/issues"
 RATINGS_REVIEWS_URL = (
@@ -35,313 +32,186 @@ RATINGS_REVIEWS_URL = (
 )
 
 
+# ---------------------------------------------------------------------------
+# Helper data structures
+# ---------------------------------------------------------------------------
+
+@dataclass
+class SelectionState:
+    packs: List[Dict[str, str]]
+    profiles: Dict[str, List[str]]
+
+
+# ---------------------------------------------------------------------------
+# RuleManager
+# ---------------------------------------------------------------------------
+
+
 class RuleManager:
-    """Manages the installation and synchronization of AI rules and related files."""
+    """Manage packs, profiles and project synchronization."""
 
     def __init__(self, project_root: Optional[str] = None) -> None:
-        self.package_path = Path(__file__).parent.absolute()
-        self.source_packs_dir = self.package_path / SOURCE_PACKS_DIR
-        
-        # Handle development environment structure
+        package_path = Path(__file__).parent.absolute()
+        self.source_packs_dir = package_path / SOURCE_PACKS_DIR
         if not self.source_packs_dir.exists():
-            dev_root = self.package_path.parent.parent
+            dev_root = package_path.parent.parent
             self.source_packs_dir = dev_root / SOURCE_PACKS_DIR
-        
+
         self.project_root = Path(project_root).absolute() if project_root else Path.cwd().absolute()
 
-    # --- Private File Operation Helpers ---
+    # ------------------------------------------------------------------
+    # Internal utilities
+    # ------------------------------------------------------------------
 
     def _copy_file(self, source: Path, destination: Path) -> bool:
+        destination.parent.mkdir(parents=True, exist_ok=True)
         try:
-            destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
             return True
-        except Exception as e:
+        except Exception as e:  # pragma: no cover - defensive programming
             print(f"Error copying {source} to {destination}: {e}")
             return False
 
-    def _get_ordered_source_files(self, source_dir_path: Path, recursive: bool) -> List[Path]:
-        if not source_dir_path.is_dir():
+    def _get_ordered_source_files(self, source_dir: Path, recursive: bool) -> List[Path]:
+        if not source_dir.is_dir():
             return []
         pattern = "**/*" if recursive else "*"
-        all_files = [p for p in source_dir_path.glob(pattern) if p.is_file() and not p.name.startswith('.')]
-        return sorted(all_files)
+        files = [p for p in source_dir.glob(pattern) if p.is_file() and not p.name.startswith(".")]
+        return sorted(files)
 
-    def _copy_tree_non_destructive_with_map(self, src_dir: Path, dest_dir: Path, project_root: Path) -> List[str]:
-        copied_files = []
-        if not src_dir.is_dir():
-            return []
+    def _copy_tree_non_destructive(self, src: Path, dest: Path, project_root: Path) -> List[str]:
+        """Copy tree from src to dest without overwriting existing files.
 
-        dest_dir.mkdir(parents=True, exist_ok=True)
+        Returns a list of relative file paths that were created.
+        """
 
-        for item in src_dir.iterdir():
-            dest_item = dest_dir / item.name
+        created: List[str] = []
+        if not src.is_dir():
+            return created
+
+        dest.mkdir(parents=True, exist_ok=True)
+        for item in src.iterdir():
+            dest_item = dest / item.name
             if item.is_dir():
-                copied_files.extend(self._copy_tree_non_destructive_with_map(item, dest_item, project_root))
+                created.extend(self._copy_tree_non_destructive(item, dest_item, project_root))
             elif not dest_item.exists():
                 if self._copy_file(item, dest_item):
-                    copied_files.append(str(dest_item.relative_to(project_root)))
-        return copied_files
+                    created.append(str(dest_item.relative_to(project_root)))
+        return created
 
-    # --- Private Rule Generation Strategies ---
-
-    def _strategy_flatten_and_number(self, source_dir: Path, dest_dir: Path, extension: Optional[str]) -> int:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
-        if not all_source_files:
-            return 0
-        
+    def _strategy_flatten_and_number(self, source: Path, dest: Path, extension: Optional[str]) -> int:
+        dest.mkdir(parents=True, exist_ok=True)
+        files = self._get_ordered_source_files(source, True)
         next_num = 1
-        for source_path in all_source_files:
-            stem = re.sub(r"^\d+-", "", source_path.stem)
-            new_extension = extension if extension is not None else ''
-            new_filename = f"{next_num:02d}-{stem}{new_extension}"
-            if self._copy_file(source_path, dest_dir / new_filename):
+        for src in files:
+            stem = re.sub(r"^\d+-", "", src.stem)
+            new_ext = extension if extension is not None else ""
+            name = f"{next_num:02d}-{stem}{new_ext}"
+            if self._copy_file(src, dest / name):
                 next_num += 1
-        return len(all_source_files)
+        return len(files)
 
-    def _strategy_preserve_hierarchy(self, source_dir: Path, dest_dir: Path) -> int:
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
-        if not all_source_files:
-            return 0
-        for source_path in all_source_files:
-            dest_path = dest_dir / source_path.relative_to(source_dir)
-            self._copy_file(source_path, dest_path)
-        return len(all_source_files)
+    def _strategy_preserve_hierarchy(self, source: Path, dest: Path) -> int:
+        dest.mkdir(parents=True, exist_ok=True)
+        files = self._get_ordered_source_files(source, True)
+        for src in files:
+            self._copy_file(src, dest / src.relative_to(source))
+        return len(files)
 
-    def _strategy_concatenate_files(self, source_dir: Path, dest_file: Path) -> None:
-        all_source_files = self._get_ordered_source_files(source_dir, recursive=True)
-        if not all_source_files:
+    def _strategy_concatenate_files(self, source: Path, dest_file: Path) -> None:
+        files = self._get_ordered_source_files(source, True)
+        if not files:
             return
         dest_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(dest_file, 'w', encoding='utf-8') as output_file:
-            for i, source_path in enumerate(all_source_files):
-                output_file.write(f"# Rule: {source_path.name}\n\n")
-                output_file.write(source_path.read_text(encoding='utf-8'))
-                if i < len(all_source_files) - 1:
-                    output_file.write("\n\n---\n\n")
+        with dest_file.open("w", encoding="utf-8") as f:
+            for i, src in enumerate(files):
+                f.write(f"# Rule: {src.name}\n\n")
+                f.write(src.read_text(encoding="utf-8"))
+                if i < len(files) - 1:
+                    f.write("\n\n---\n\n")
 
-    # --- Private Generic Generation Engine ---
-
-    def _generate_for_assistant(self, spec: AssistantSpec, source_dir: Path, target_root: Path):
+    def _generate_for_assistant(self, spec: AssistantSpec, source_dir: Path, target_root: Path) -> None:
         target_path = target_root / spec.rule_path
-
         if not spec.is_multi_file:
-            dest_file = target_path / spec.filename
-            self._strategy_concatenate_files(source_dir, dest_file)
-            print(f"  -> Generated {spec.display_name} instructions at {dest_file}")
+            self._strategy_concatenate_files(source_dir, target_path / spec.filename)
+            print(f"  -> Generated {spec.display_name} instructions at {target_path / spec.filename}")
             return
 
         if spec.has_modes:
-            total_files = 0
-            for source_sub_dir in source_dir.iterdir():
-                if not source_sub_dir.is_dir() or source_sub_dir.name.startswith('.'):
+            total = 0
+            for sub in source_dir.iterdir():
+                if not sub.is_dir() or sub.name.startswith("."):
                     continue
-
-                mode_name = re.sub(r"^\d+-", "", source_sub_dir.name)
-                target_mode_dir = target_path / mode_name
-                
-                count = self._strategy_preserve_hierarchy(source_sub_dir, target_mode_dir)
-                if count > 0:
-                    print(f"  -> Generated {count} {spec.display_name} '{mode_name}' rules in {target_mode_dir}")
-                    total_files += count
-            
-            if total_files == 0:
+                mode_name = re.sub(r"^\d+-", "", sub.name)
+                count = self._strategy_preserve_hierarchy(sub, target_path / mode_name)
+                if count:
+                    print(f"  -> Generated {count} {spec.display_name} '{mode_name}' rules in {target_path / mode_name}")
+                    total += count
+            if not total:
                 print(f"  -> No rules found to generate for {spec.display_name}")
             return
 
-        count = 0
-        if spec.supports_subdirectories:
-            count = self._strategy_preserve_hierarchy(source_dir, target_path)
-        else:
-            count = self._strategy_flatten_and_number(source_dir, target_path, spec.file_extension)
-        
-        if count > 0:
+        count = (
+            self._strategy_preserve_hierarchy(source_dir, target_path)
+            if spec.supports_subdirectories
+            else self._strategy_flatten_and_number(source_dir, target_path, spec.file_extension)
+        )
+        if count:
             print(f"  -> Generated {count} {spec.display_name} rule files in {target_path}")
 
-    # --- Public Command Methods ---
+    # ------------------------------------------------------------------
+    # Selection and manifest helpers
+    # ------------------------------------------------------------------
 
-    def install(self, rule_set: str = DEFAULT_RULE_SET, project_dir: Optional[str] = None,
-                clean_first: bool = False, assistants: Optional[List[str]] = None) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
+    def _selection_path(self, project_root: Path) -> Path:
+        return project_root / TARGET_INTERNAL_STATE_DIR / "selection.json"
 
-        pack_source_dir = self.source_packs_dir / rule_set
+    def _load_selection(self, project_root: Path) -> SelectionState:
+        path = self._selection_path(project_root)
+        if not path.exists():
+            return SelectionState(packs=[], profiles={})
+        data = json.loads(path.read_text())
+        return SelectionState(packs=data.get("packs", []), profiles=data.get("profiles", {}))
 
-        if clean_first:
-            self.clean_rules(str(target_root))
+    def _save_selection(self, project_root: Path, state: SelectionState) -> None:
+        path = self._selection_path(project_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump({"packs": state.packs, "profiles": state.profiles}, f, indent=2)
 
-        if not pack_source_dir.is_dir():
-            print(f"Error: Pack '{rule_set}' not found.")
-            self.list_packs()
-            return 1
+    def _file_manifest_path(self, project_root: Path) -> Path:
+        return project_root / TARGET_INTERNAL_STATE_DIR / "file_manifest.json"
 
-        # Create .rulebook-ai directory structure
-        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
-        rulebook_ai_packs_dir = rulebook_ai_dir / "packs"
-        rulebook_ai_dir.mkdir(exist_ok=True)
-        rulebook_ai_packs_dir.mkdir(exist_ok=True)
+    def _load_file_manifest(self, project_root: Path) -> Dict[str, str]:
+        path = self._file_manifest_path(project_root)
+        if path.exists():
+            return json.loads(path.read_text())
+        return {}
 
-        # Copy pack source to .rulebook-ai/packs
-        dest_pack_dir = rulebook_ai_packs_dir / rule_set
-        if dest_pack_dir.exists():
-            shutil.rmtree(dest_pack_dir)
-        shutil.copytree(pack_source_dir, dest_pack_dir)
-        print(f"- Stored pack '{rule_set}' in '{dest_pack_dir}'")
+    def _save_file_manifest(self, project_root: Path, manifest: Dict[str, str]) -> None:
+        path = self._file_manifest_path(project_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump(manifest, f, indent=2)
 
-        # Update selection.json
-        selection_file = rulebook_ai_dir / "selection.json"
-        selection = {"packs": []}
-        if selection_file.exists():
-            with open(selection_file, 'r') as f:
-                selection = json.load(f)
+    def _sync_status_path(self, project_root: Path) -> Path:
+        return project_root / TARGET_INTERNAL_STATE_DIR / "sync_status.json"
 
-        manifest_file = dest_pack_dir / "manifest.yaml"
-        if not manifest_file.exists():
-            print(f"Warning: manifest.yaml not found for pack '{rule_set}'. Using version 0.0.0.")
-            version = "0.0.0"
-        else:
-            with open(manifest_file, 'r') as f:
-                manifest = yaml.safe_load(f)
-                version = manifest.get("version", "0.0.0")
+    def _load_sync_status(self, project_root: Path) -> Dict[str, dict]:
+        path = self._sync_status_path(project_root)
+        if path.exists():
+            return json.loads(path.read_text())
+        return {}
 
-        # Avoid adding duplicate packs
-        if not any(p['name'] == rule_set for p in selection['packs']):
-            selection['packs'].append({"name": rule_set, "version": version})
+    def _save_sync_status(self, project_root: Path, data: Dict[str, dict]) -> None:
+        path = self._sync_status_path(project_root)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump(data, f, indent=2)
 
-        with open(selection_file, 'w') as f:
-            json.dump(selection, f, indent=2)
-        print(f"- Updated '{selection_file}'")
-
-
-        print(f"Installing framework components from pack '{rule_set}'...")
-        # 1. Copy rule set (destructive)
-        target_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        rule_set_source_dir = pack_source_dir / 'rules'
-        if rule_set_source_dir.is_dir():
-            if target_rules_dir.exists():
-                shutil.rmtree(target_rules_dir)
-            shutil.copytree(rule_set_source_dir, target_rules_dir)
-            print(f"- Copied rule set to '{target_rules_dir}'")
-
-        # 2. Copy memory and tools (non-destructive) and create file map
-        file_map = {"files": []}
-        for starter_subdir, target_dir_name in [("memory_starters", TARGET_MEMORY_BANK_DIR), ("tool_starters", TARGET_TOOLS_DIR)]:
-            starter_dir = pack_source_dir / starter_subdir
-            if starter_dir.is_dir():
-                target_dir = target_root / target_dir_name
-                copied = self._copy_tree_non_destructive_with_map(starter_dir, target_dir, target_root)
-                file_map["files"].extend(copied)
-
-        # Save the file map
-        if file_map["files"]:
-            file_map_path = dest_pack_dir / "file-map.json"
-            with open(file_map_path, 'w') as f:
-                json.dump(file_map, f, indent=2)
-            print(f"- Created file map with {len(file_map['files'])} entries in '{file_map_path}'")
-
-        # 3. Per spec, run the sync logic
-        print("\nRunning initial synchronization...")
-        self.sync(str(target_root), assistants)
-
-        print(f"\nInstallation complete.")
-        return 0
-
-    def sync(self, project_dir: Optional[str] = None, assistants: Optional[List[str]] = None) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        source_rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        
-        if not source_rules_dir.is_dir():
-            print(f"Error: '{source_rules_dir}' does not exist. Run 'install' first.")
-            return 1
-            
-        names_to_sync = assistants
-        if names_to_sync is None:
-            # Per the design spec, sync with no flags defaults to all assistants
-            names_to_sync = [a.name for a in SUPPORTED_ASSISTANTS]
-
-        if not names_to_sync:
-            print("No assistants selected to sync. Use --[assistant] or --all to specify.")
-            return 0
-        
-        print(f"Syncing rules from '{source_rules_dir}' for: {', '.join(names_to_sync)}")
-        for name in names_to_sync:
-            spec = ASSISTANT_MAP.get(name)
-            if not spec: continue
-
-            # 1. Clean the existing rules for the assistant
-            path_to_clean = target_root / spec.clean_path
-            if path_to_clean.is_dir():
-                shutil.rmtree(path_to_clean)
-            elif path_to_clean.is_file():
-                path_to_clean.unlink()
-
-            # 2. Regenerate the rules from project_rules/
-            self._generate_for_assistant(spec, source_rules_dir, target_root)
-            
-        print("\nSync complete.")
-        return 0
-
-    def clean_rules(self, project_dir: Optional[str] = None) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        print("Cleaning rule-related files and directories...")
-
-        # 1. Remove the project_rules directory
-        rules_dir = target_root / TARGET_PROJECT_RULES_DIR
-        if rules_dir.exists():
-            shutil.rmtree(rules_dir)
-            print(f"- Removed: {rules_dir}")
-
-        # 2. Remove all generated assistant rules (data-driven)
-        for spec in SUPPORTED_ASSISTANTS:
-            path_to_clean = target_root / spec.clean_path
-            if path_to_clean.is_file() and path_to_clean.exists():
-                path_to_clean.unlink()
-                print(f"- Removed: {path_to_clean}")
-                # Attempt to remove empty parent directories (e.g., .github, .gemini)
-                try:
-                    parent = path_to_clean.parent
-                    if parent != target_root and not any(parent.iterdir()):
-                        parent.rmdir()
-                        print(f"- Removed empty directory: {parent}")
-                except OSError:
-                    pass  # Ignore if not empty or other error
-            elif path_to_clean.is_dir() and path_to_clean.exists():
-                shutil.rmtree(path_to_clean)
-                print(f"- Removed: {path_to_clean}")
-
-        # 3. Remove internal state directory
-        rulebook_dir = target_root / TARGET_INTERNAL_STATE_DIR
-        if rulebook_dir.exists():
-            shutil.rmtree(rulebook_dir)
-            print(f"- Removed: {rulebook_dir}")
-
-        print("\nRule cleaning complete.")
-        return 0
-
-    def clean(self, project_dir: Optional[str] = None) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-
-        # 1. Run clean_rules first (removes generated rules and .rulebook-ai)
-        self.clean_rules(str(target_root))
-
-        # 2. Remove the persistent framework directories
-        print("\nCleaning all remaining framework components...")
-        for item in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR]:
-            item_path = target_root / item
-            if item_path.is_file() and item_path.exists():
-                item_path.unlink()
-                print(f"- Removed: {item_path}")
-            elif item_path.is_dir() and item_path.exists():
-                shutil.rmtree(item_path)
-                print(f"- Removed: {item_path}")
-
-        print("\nFull cleaning complete.")
-        return 0
-
-    def clean_all(self, project_dir: Optional[str] = None) -> int:
-        """Backward-compatible wrapper for the old 'clean-all' command."""
-        return self.clean(project_dir)
+    # ------------------------------------------------------------------
+    # Pack commands
+    # ------------------------------------------------------------------
 
     def list_packs(self) -> None:
         if not self.source_packs_dir.is_dir():
@@ -350,121 +220,345 @@ class RuleManager:
 
         print("Available packs:")
         for pack_dir in sorted(
-            [p for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith('.')],
+            [p for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith(".")],
             key=lambda p: p.name,
         ):
             manifest_path = pack_dir / "manifest.yaml"
             version = "unknown"
             summary = ""
             if manifest_path.exists():
-                with open(manifest_path, 'r') as f:
-                    manifest = yaml.safe_load(f) or {}
+                manifest = yaml.safe_load(manifest_path.read_text()) or {}
                 version = manifest.get("version", "unknown")
                 summary = manifest.get("summary", "")
             print(f"  - {pack_dir.name} (v{version}) - {summary}")
 
         print(f"\nFor ratings and reviews of these packs, visit {RATINGS_REVIEWS_URL}")
 
-    def add_pack(
-        self,
-        name: str,
-        project_dir: Optional[str] = None,
-        assistants: Optional[List[str]] = None,
-    ) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        return self.install(name, str(target_root), False, assistants)
-
-    def remove_pack(
-        self,
-        name: str,
-        project_dir: Optional[str] = None,
-    ) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
-        packs_dir = rulebook_ai_dir / "packs"
-        dest_pack_dir = packs_dir / name
-
-        if not dest_pack_dir.exists():
-            print(f"Pack '{name}' is not active.")
+    def add_pack(self, name: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        source = self.source_packs_dir / name
+        if not source.is_dir():
+            print(f"Pack '{name}' not found.")
+            self.list_packs()
             return 1
 
-        # Remove files introduced by this pack using file map
-        file_map_path = dest_pack_dir / "file-map.json"
-        if file_map_path.exists():
-            with open(file_map_path, "r") as f:
-                file_map = json.load(f)
-            for rel_path in file_map.get("files", []):
-                file_path = target_root / rel_path
-                if file_path.exists():
-                    file_path.unlink()
-                    # Remove empty parent directories up to project root
-                    parent = file_path.parent
-                    while parent != target_root and parent.exists() and not any(parent.iterdir()):
-                        parent.rmdir()
-                        parent = parent.parent
-
-        shutil.rmtree(dest_pack_dir)
-        print(f"- Removed pack directory '{dest_pack_dir}'")
+        dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
+        if dest_dir.exists():
+            shutil.rmtree(dest_dir)
+        dest_dir.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source, dest_dir)
 
         # Update selection.json
-        selection_file = rulebook_ai_dir / "selection.json"
-        selection = {"packs": []}
-        if selection_file.exists():
-            with open(selection_file, "r") as f:
-                selection = json.load(f)
-        selection["packs"] = [p for p in selection.get("packs", []) if p["name"] != name]
-        with open(selection_file, "w") as f:
-            json.dump(selection, f, indent=2)
-        print(f"- Updated '{selection_file}'")
+        selection = self._load_selection(project_root)
+        manifest_file = dest_dir / "manifest.yaml"
+        version = "0.0.0"
+        if manifest_file.exists():
+            manifest = yaml.safe_load(manifest_file.read_text()) or {}
+            version = manifest.get("version", "0.0.0")
+        if not any(p["name"] == name for p in selection.packs):
+            selection.packs.append({"name": name, "version": version})
+        self._save_selection(project_root, selection)
 
-        if not selection["packs"]:
-            print("\nNo packs remain. Cleaning generated rules...")
-            self.clean_rules(str(target_root))
-        else:
-            print("\nRunning synchronization...")
-            self.sync(str(target_root))
-
-        print(f"\nRemoval of pack '{name}' complete.")
+        print(f"Added pack '{name}'. Run 'project sync' to apply changes.")
         return 0
 
-    def status(
-        self,
-        project_dir: Optional[str] = None,
-    ) -> int:
-        target_root = Path(project_dir).absolute() if project_dir else self.project_root
-        rulebook_ai_dir = target_root / TARGET_INTERNAL_STATE_DIR
-        selection_file = rulebook_ai_dir / "selection.json"
-        if not selection_file.exists():
-            print("No packs are active.")
+    def remove_pack(self, name: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
+        if not dest_dir.exists():
+            print(f"Pack '{name}' is not installed.")
+            return 1
+
+        shutil.rmtree(dest_dir)
+
+        selection = self._load_selection(project_root)
+        selection.packs = [p for p in selection.packs if p["name"] != name]
+        for profile, packs in list(selection.profiles.items()):
+            if name in packs:
+                packs.remove(name)
+                selection.profiles[profile] = packs
+        self._save_selection(project_root, selection)
+
+        print(f"Removed pack '{name}'. Remember to run 'project sync' to update rules.")
+        return 0
+
+    def packs_status(self, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if not selection.packs:
+            print("No packs are configured.")
             return 0
 
-        with open(selection_file, "r") as f:
-            selection = json.load(f)
-        packs = selection.get("packs", [])
-        if not packs:
-            print("No packs are active.")
-            return 0
-
-        print("Active packs:")
-        for idx, pack in enumerate(packs, start=1):
+        print("Pack library:")
+        for idx, pack in enumerate(selection.packs, 1):
             version = pack.get("version", "unknown")
             print(f"  {idx}. {pack['name']} (v{version})")
+
+        if selection.profiles:
+            print("\nProfiles:")
+            for profile, packs in selection.profiles.items():
+                print(f"  - {profile}: {', '.join(packs)}")
         return 0
 
+    # ------------------------------------------------------------------
+    # Profile commands
+    # ------------------------------------------------------------------
+
+    def create_profile(self, name: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if name in selection.profiles:
+            print(f"Profile '{name}' already exists.")
+            return 1
+        selection.profiles[name] = []
+        self._save_selection(project_root, selection)
+        print(f"Created profile '{name}'.")
+        return 0
+
+    def delete_profile(self, name: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if name not in selection.profiles:
+            print(f"Profile '{name}' does not exist.")
+            return 1
+        del selection.profiles[name]
+        self._save_selection(project_root, selection)
+        print(f"Deleted profile '{name}'.")
+        return 0
+
+    def add_pack_to_profile(self, pack: str, profile: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if pack not in [p["name"] for p in selection.packs]:
+            print(f"Pack '{pack}' is not in the library.")
+            return 1
+        if profile not in selection.profiles:
+            print(f"Profile '{profile}' does not exist.")
+            return 1
+        if pack not in selection.profiles[profile]:
+            selection.profiles[profile].append(pack)
+        self._save_selection(project_root, selection)
+        print(f"Added pack '{pack}' to profile '{profile}'.")
+        return 0
+
+    def remove_pack_from_profile(self, pack: str, profile: str, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if profile not in selection.profiles or pack not in selection.profiles[profile]:
+            print(f"Pack '{pack}' is not in profile '{profile}'.")
+            return 1
+        selection.profiles[profile].remove(pack)
+        self._save_selection(project_root, selection)
+        print(f"Removed pack '{pack}' from profile '{profile}'.")
+        return 0
+
+    def list_profiles(self, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        if not selection.profiles:
+            print("No profiles defined.")
+            return 0
+        for name, packs in selection.profiles.items():
+            print(f"{name}: {', '.join(packs)}")
+        return 0
+
+    # ------------------------------------------------------------------
+    # Project commands
+    # ------------------------------------------------------------------
+
+    def project_sync(
+        self,
+        assistants: Optional[List[str]] = None,
+        profile: Optional[str] = None,
+        packs: Optional[List[str]] = None,
+        project_dir: Optional[str] = None,
+    ) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+
+        if profile and packs:
+            print("Cannot specify both --profile and --pack flags.")
+            return 1
+
+        if profile:
+            pack_list = selection.profiles.get(profile, [])
+            mode = {"mode": "profile", "profile": profile}
+        elif packs:
+            pack_list = packs
+            mode = {"mode": "pack", "packs": pack_list}
+        else:
+            pack_list = [p["name"] for p in selection.packs]
+            mode = {"mode": "all", "packs": pack_list}
+
+        # Copy rules from packs into staging area
+        state_dir = project_root / TARGET_INTERNAL_STATE_DIR
+        rules_root = state_dir / "project_rules"
+        if rules_root.exists():
+            shutil.rmtree(rules_root)
+        rules_root.mkdir(parents=True, exist_ok=True)
+        for pack_name in pack_list:
+            pack_rules = state_dir / "packs" / pack_name / "rules"
+            self._copy_tree_non_destructive(pack_rules, rules_root, project_root)
+
+        # Copy memory/tool starters
+        file_manifest = self._load_file_manifest(project_root)
+        for pack_name in pack_list:
+            pack_dir = state_dir / "packs" / pack_name
+            starters = [
+                ("memory_starters", TARGET_MEMORY_BANK_DIR),
+                ("tool_starters", TARGET_TOOLS_DIR),
+            ]
+            for starter_subdir, target in starters:
+                created = self._copy_tree_non_destructive(
+                    pack_dir / starter_subdir, project_root / target, project_root
+                )
+                for rel in created:
+                    file_manifest[rel] = pack_name
+        self._save_file_manifest(project_root, file_manifest)
+
+        # Generate rules for assistants
+        names_to_sync = assistants or [a.name for a in SUPPORTED_ASSISTANTS]
+        for name in names_to_sync:
+            spec = ASSISTANT_MAP.get(name)
+            if not spec:
+                continue
+            path_to_clean = project_root / spec.clean_path
+            if path_to_clean.is_dir():
+                shutil.rmtree(path_to_clean)
+            elif path_to_clean.is_file():
+                path_to_clean.unlink()
+            self._generate_for_assistant(spec, rules_root, project_root)
+
+        # Update sync status
+        status = self._load_sync_status(project_root)
+        timestamp = datetime.now(timezone.utc).isoformat()
+        for name in names_to_sync:
+            status[name] = {"timestamp": timestamp, **mode, "packs": pack_list, "pack_count": len(pack_list)}
+        self._save_sync_status(project_root, status)
+
+        print("Sync complete.")
+        return 0
+
+    def project_status(self, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        status = self._load_sync_status(project_root)
+        if not status:
+            print("No sync status found.")
+            return 0
+        print("Project Sync Status:")
+        for assistant, info in status.items():
+            ts = info.get("timestamp", "unknown")
+            mode = info.get("mode", "all")
+            line = f"  - {assistant}: {ts} ({mode})"
+            if mode == "profile":
+                line += f" profile={info.get('profile')}"
+            elif mode == "pack":
+                line += f" packs={len(info.get('packs', []))}"
+            else:
+                line += f" packs={len(info.get('packs', []))}"
+            print(line)
+        return 0
+
+    def project_clean_rules(self, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        # remove generated assistant rules
+        for spec in SUPPORTED_ASSISTANTS:
+            path = project_root / spec.clean_path
+            if path.is_file():
+                path.unlink()
+                parent = path.parent
+                if parent != project_root and not any(parent.iterdir()):
+                    parent.rmdir()
+            elif path.is_dir():
+                shutil.rmtree(path)
+        # remove internal state dir
+        state_dir = project_root / TARGET_INTERNAL_STATE_DIR
+        if state_dir.exists():
+            shutil.rmtree(state_dir)
+            print(f"- Removed: {state_dir}")
+        return 0
+
+    def project_clean(self, project_dir: Optional[str] = None) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        self.project_clean_rules(str(project_root))
+        for name in [TARGET_MEMORY_BANK_DIR, TARGET_TOOLS_DIR]:
+            path = project_root / name
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                shutil.rmtree(path)
+        return 0
+
+    def project_clean_context(
+        self,
+        project_dir: Optional[str] = None,
+        action: Optional[str] = None,
+        force: bool = False,
+    ) -> int:
+        project_root = Path(project_dir).absolute() if project_dir else self.project_root
+        selection = self._load_selection(project_root)
+        installed = {p["name"] for p in selection.packs}
+        manifest = self._load_file_manifest(project_root)
+        orphans = {p: pack for p, pack in manifest.items() if pack not in installed}
+        if not orphans:
+            print("No orphaned context files found.")
+            return 0
+
+        if not force:
+            print("Orphaned context files:")
+            for rel in orphans:
+                print(f"  - {rel}")
+            if not action:
+                resp = input("Delete these files? [y/N]: ").strip().lower()
+                action = "delete" if resp == "y" else "keep"
+            else:
+                resp = input(f"Proceed to {action} these files? [y/N]: ").strip().lower()
+                if resp != "y":
+                    print("Cleanup cancelled by user.")
+                    return 0
+        else:
+            if not action:
+                action = "keep"
+
+        for rel in list(orphans.keys()):
+            full_path = project_root / rel
+            if action == "delete" and full_path.exists():
+                if full_path.is_file():
+                    full_path.unlink()
+                    parent = full_path.parent
+                    roots = {
+                        project_root / TARGET_MEMORY_BANK_DIR,
+                        project_root / TARGET_TOOLS_DIR,
+                        project_root,
+                    }
+                    while parent not in roots and not any(parent.iterdir()):
+                        parent.rmdir()
+                        parent = parent.parent
+                elif full_path.is_dir():
+                    shutil.rmtree(full_path)
+            manifest.pop(rel, None)
+
+        self._save_file_manifest(project_root, manifest)
+        print("Context cleanup complete.")
+        return 0
+
+    # ------------------------------------------------------------------
+    # Utility
+    # ------------------------------------------------------------------
+
     def report_bug(self) -> int:
-        """Provide the project issue tracker URL for reporting bugs."""
         print(f"To report a bug, please visit {BUG_REPORT_URL}")
-        try:
+        try:  # pragma: no cover - best effort
             webbrowser.open(BUG_REPORT_URL)
         except Exception:
             pass
         return 0
 
     def rate_ruleset(self) -> int:
-        """Open the ratings and reviews wiki page for rulesets."""
         print(f"For ratings and reviews, please visit {RATINGS_REVIEWS_URL}")
-        try:
+        try:  # pragma: no cover
             webbrowser.open(RATINGS_REVIEWS_URL)
         except Exception:
             pass
         return 0
+
