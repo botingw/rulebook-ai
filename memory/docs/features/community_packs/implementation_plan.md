@@ -11,20 +11,21 @@ The most fundamental action is **installing a single, known pack from a direct s
 **Objective:** To create a robust, secure mechanism for adding a single pack from a specified Git repository. This phase completely ignores the community index.
 
 1.  **Task: Implement the "Add by Slug" Logic**
-    *   Modify the `packs add` command to recognize a GitHub slug (e.g., `username/repository`).
+    *   Modify the `packs add` command to recognize a GitHub slug (e.g., `username/repository` or `username/repository/path`).
     *   Parse the slug to determine the repository URL.
 
 2.  **Task: Develop the Secure Fetch-and-Validate Workflow**
     *   Create a function that, given a repository URL:
         a. Clones the repository's default branch into a secure, temporary directory.
         b. **Validates** the contents of the temporary directory against the `pack_developer_guide.md` (e.g., `manifest.yaml` and `rules/` exist).
-        c. **Verifies Identity:** Parses the `manifest.yaml` and confirms its `name` is valid and consistent.
+        c. **Verifies Identity:** Parses the `manifest.yaml` and confirms its `name` is valid, not reserved by built-in packs, and not already installed from a different source.
         d. **Returns** the validated pack's temporary path or throws an error.
 
 3.  **Task: Implement User Confirmation and Installation**
-    *   If validation succeeds, present a clear warning to the user that they are installing un-audited code from a direct URL.
+    *   If validation succeeds, present a clear warning to the user that they are installing un‑audited code from a direct URL.
     *   Require explicit user confirmation (`y/n`).
-    *   Upon confirmation, move the pack from the temporary directory into the project's `.rulebook-ai/packs/` directory.
+    *   Before moving files, check whether `.rulebook-ai/packs/<name>` already exists; abort if it comes from a different source.
+    *   Upon confirmation, move the pack from the temporary directory into `.rulebook-ai/packs/<name>`.
     *   Ensure the temporary directory is always cleaned up, especially on error.
 
 **Outcome of Phase 1:** A user can reliably and securely install any compatible pack if they know its GitHub URL slug (e.g., `rulebook-ai packs add my-org/my-cool-pack`).
@@ -36,20 +37,22 @@ The most fundamental action is **installing a single, known pack from a direct s
 **Objective:** To introduce the concept of a community index that users can refresh, enabling installation by name instead of by URL.
 
 1.  **Task: Implement the Local Cache**
-    *   Define a location for the local index cache (e.g., `~/.cache/rulebook-ai/packs.json`).
+    *   Store the local index cache inside the Python package at `rulebook_ai/community/index_cache/packs.json` so all repositories share one updated index.
     *   Create functions to read from and write to this cache file.
 
 2.  **Task: Implement the `packs update` Command**
     *   This is the only command that will access the network for the index.
-    *   It will fetch the `packs.json` from the hardcoded official Index Repository URL.
-    *   It will overwrite the local cache with the fetched content.
+    *   Fetch the `packs.json` from the hardcoded official Index Repository URL.
+    *   Validate the JSON structure and required fields.
+    *   Replace the local cache only on success; otherwise retain the previous file and report an error.
 
 3.  **Task: Enhance `packs add` to Use the Index**
     *   Update the command's logic:
         a. First, check if the given `<input>` is a slug. If so, use the Phase 1 workflow.
         b. If not a slug, search for a pack with a matching `name` in the local index cache.
         c. If found, use the `repo`, `commit`, or `tag` from the index entry to fuel the secure fetch-and-validate workflow from Phase 1.
-        d. The warning messages will be adjusted based on whether the pack is pinned to a commit/tag or not.
+        d. Abort if the resolved `name` already exists locally from a different source.
+        e. Adjust warning messages based on whether the pack is pinned to a commit or tag.
 
 **Outcome of Phase 2:** A user can run `packs update` to discover new packs and then install them by their simple name (e.g., `rulebook-ai packs add python-pro-pack`).
 
