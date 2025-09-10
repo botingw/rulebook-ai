@@ -30,9 +30,11 @@ my-awesome-pack/
 This file contains essential metadata for the pack.
 
 **Required Fields:**
-*   `name` (string): A unique, machine-friendly name for the pack (e.g., `my-awesome-pack`).
+*   `name` (string): A globally unique, machine-friendly name for the pack (e.g., `my-awesome-pack`).
 *   `version` (string): The version of the pack, preferably using Semantic Versioning (e.g., `1.0.0`).
 *   `summary` (string): A brief, one-sentence description of the pack's purpose.
+
+The `name` field becomes the installation directory inside `.rulebook-ai/packs/<name>`. To avoid conflicts, choose a name that is not used by built-in packs or other community packs. The CLI aborts installation if an existing pack with the same `name` comes from a different source.
 
 ### Directory Specifications
 

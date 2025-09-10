@@ -4,7 +4,7 @@
 
 The primary motivation for this feature is to evolve `rulebook-ai` from a standalone tool into a platform with a thriving, community-driven ecosystem. We want to empower users to easily share, discover, and use `Rule Packs` created by others, fostering a collaborative environment for AI-assisted development best practices.
 
-This document specifies the Minimum Viable Product (MVP) for this feature, designed to be simple, secure, and maintainable, while providing a solid foundation for future growth.
+This document specifies the Minimum Viable Product (MVP) for this feature, designed to be simple, secure, and maintainable, while providing a solid foundation for future growth. It **extends** the core CLI behavior described in [`manage_rules/spec.md`](../manage_rules/spec.md); only community‑specific behavior is documented here.
 
 ## 2. Design Principles
 
@@ -21,40 +21,40 @@ The design of this feature is guided by the following core principles, which pri
 
 2.  **Public Index Repository**: A single, official, public Git repository that serves as a curated list of community packs. Its core is a `packs.json` file.
 
-3.  **Local Index Cache**: A local copy of the `packs.json` file stored on the user's machine. This cache is **only** updated when the user explicitly runs the `packs update` command.
+3.  **Local Index Cache**: A local copy of the `packs.json` file stored on the user's machine. For the MVP the cache lives inside the installed Python package at `rulebook_ai/community/index_cache/packs.json` so that all repositories share one updated index. This cache is **only** updated when the user explicitly runs the `packs update` command.
+## 4. Index Data Model
 
-## 4. Finalized CLI Behavior (MVP)
+Each entry in `packs.json` describes a single community pack with the following fields:
 
-*   **`rulebook-ai packs list`**
-    *   Displays a single, merged list of all packs available: built-in packs plus packs from the Local Index Cache.
-    *   Community packs are marked, e.g., `python-pro-pack (community)`.
-    *   This command **does not** access the network.
+* `name` (string, required) – globally unique pack identifier.
+* `username` (string, required) – GitHub account that hosts the repository.
+* `repo` (string, required) – repository name.
+* `path` (string, optional) – path within the repository to the pack root; defaults to `/`.
+* `description` (string, required) – short human-readable summary.
+* `commit` (string, optional) – specific commit or tag to check out.
 
-*   **`rulebook-ai packs update`**
-    *   The **only** command that accesses the network to fetch the community index.
-    *   Pulls the latest `packs.json` from the official `Index Repository` and updates the Local Index Cache.
+The trio `username`, `repo`, and optional `path` form a **slug** `username/repo[/path]` that uniquely identifies the source location. The slug is recorded in local metadata so the original source can always be traced.
 
-*   **`rulebook-ai packs add <input>`**
-    *   This command uses a two-step resolution logic to find the pack's source:
-        1.  **Direct Git Location (Slug)**: First, it checks if the `<input>` string matches the GitHub slug format: `username/repository` or `username/repository/path/to/pack`. This is the designated method for installing unlisted packs.
-        2.  **Named Pack (from Index)**: If the input is not a slug, the CLI searches for a pack with a matching `name` in the unified list (built-in and cached community packs).
+## 5. Installation Path & Collision Rules
 
-    *   Once the pack's source repository is determined, the installation follows a strict, user-centric validation workflow:
-        1.  **Clone**: The CLI checks the pack's index entry for an optional `commit` or `tag`.
-            *   If a `commit` or `tag` is specified, the CLI clones that exact version. This is the most secure method.
-            *   If not, the CLI clones the repository's default branch.
-        2.  **Validate**: The CLI performs an automated validation on the cloned files.
-            *   This includes ensuring they conform to the `pack_developer_guide.md` (e.g., a valid `manifest.yaml` and a `rules/` directory exist).
-            *   As a critical integrity check, the validation **must** confirm that the `name` inside the pack's `manifest.yaml` exactly matches the name requested for installation. If they do not match, the installation must be aborted with an error.
-        3.  **Warn & Confirm**:
-            *   If validation fails, the installation is aborted with a clear error message.
-            *   If validation succeeds, a clear warning is displayed.
-                *   For packs with a specified `commit` or `tag`, the user is informed they are installing third-party code that has been pinned to a specific version.
-                *   For packs without a `commit` or `tag`, a **stronger warning** is shown, explaining that the code is from the latest version of the default branch and could change at any time.
-            *   In all cases, the user **must** explicitly confirm to proceed.
-        4.  **Install**: Only after user confirmation does the CLI move the pack from the temporary directory to its final location in `.rulebook-ai/packs/`.
+* Every installed community pack is copied to `.rulebook-ai/packs/<name>` within the target repository.
+* Pack `name` values must be globally unique and cannot match built‑in pack names.
+* If `.rulebook-ai/packs/<name>` already exists from a different source, the CLI aborts and no files are modified.
+* Local metadata records the source slug to ensure traceability of each pack.
 
-## 5. Contribution Workflow
+## 6. CLI Integration
+
+The following notes supplement the `packs` subcommands defined in [`manage_rules/spec.md`](../manage_rules/spec.md) with community-specific behavior.
+
+* **`packs list`** – merges built‑in packs with entries from the Local Index Cache. Community packs appear with a `(community)` label. No network calls are made.
+* **`packs add <input>`** – resolves `<input>` either as a direct GitHub slug (`username/repo[/path]`) or as a named pack from the unified list. If no match is found, the CLI aborts with a clear "pack not found" error. After resolving the source, the CLI clones, warns, and installs using the same workflow as core packs (see [`manage_rules/spec.md`](../manage_rules/spec.md)). The pack is then structurally verified using the same checks described in the **Contribution Workflow** section; any validation failure aborts the install. If the pack's `manifest.yaml` `name` conflicts with an existing local pack, the command fails.
+* **`packs update`** – new command that:
+    1. Fetches the latest `packs.json` from the Public Index Repository.
+    2. Validates the JSON structure and required fields.
+    3. Replaces the Local Index Cache on success; otherwise the existing cache is kept and an error is reported.
+  This is the only `packs` subcommand that performs network access.
+
+## 7. Contribution Workflow
 
 Before a pack can be added to the public index, it must meet several quality standards. These requirements are checked during the maintainer review.
 
