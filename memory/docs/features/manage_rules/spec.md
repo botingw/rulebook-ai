@@ -6,7 +6,7 @@ The `rulebook-ai` command-line interface manages modular "Packs" that bundle AI 
 
 **2. Core Concepts**
 
-1.  **Source Repository (Framework):** Hosts a top-level `packs/` directory. Each pack contains `rules/`, `memory_starters/`, `tool_starters/`, a required `manifest.yaml`, and a `README.md`.
+1.  **Source Repository (Framework):** Hosts a top-level `packs/` directory. Each pack follows the [Pack Structure Spec](pack_structure_spec.md): it must include `manifest.yaml`, `README.md`, and `rules/`, with optional `memory_starters/` and `tool_starters/`.
 2.  **Target Repo:** Any project repository where packs are added.
 3.  **Framework State Directory:** A hidden **`.rulebook-ai/`** directory inside the Target Repo. It stores:
     *   `.rulebook-ai/packs/`: local copies of every added pack.
@@ -50,12 +50,13 @@ Commands are grouped into **packs**, **profiles**, and **project** categories. [
     *   **Behavior:**
         1.  If `<input>` matches a built-in pack name from the Source Repository's `packs/` directory, the built-in pack is used.
         2.  Otherwise, the CLI resolves `<input>` as a community pack name or slug. Community rules—slug syntax, index lookup, and collision policy—are described in [`community_packs/spec.md`](../community_packs/spec.md). If no match is found, the CLI aborts with a clear "pack not found" error.
-        3.  Handles installation into `.rulebook-ai/packs/<name>/` with the following logic:
+        3.  Validates the pack structure against [Pack Structure Spec](pack_structure_spec.md); any violation aborts the command.
+        4.  Handles installation into `.rulebook-ai/packs/<name>/` with the following logic:
             *   **Name Collision (Different Source):** If a pack with the same `name` is already installed but from a *different* source (e.g., a community pack has the same name as a built-in pack), the command aborts with an error. This prevents ambiguity.
             *   **Re-installation (Same Source):** If a pack is already installed from the *same* source (e.g., re-running `packs add` for an existing pack), the CLI proceeds by removing the old directory and performing a fresh installation. This makes the operation idempotent and allows it to be used for refreshing/updating a pack.
             *   **New Installation:** If the name is not in use, the pack is installed directly.
-        4.  Appends the chosen name and version to the ordered list in `selection.json` if it's not already present.
-        5.  Does **not** modify `memory/`, `tools/`, or generated rules; users must run `project sync` to apply changes.
+        5.  Appends the chosen name and version to the ordered list in `selection.json` if it's not already present.
+        6.  Does **not** modify `memory/`, `tools/`, or generated rules; users must run `project sync` to apply changes.
     *   **Use Case:** Expand the pack library prior to applying context.
 
 *   **`rulebook-ai packs remove <name...>`**

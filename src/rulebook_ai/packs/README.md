@@ -4,6 +4,12 @@
 
 This repository contains different versions of rule sets designed to enhance the effectiveness of AI coding assistants (like Cursor, Cline, Roo Code, etc.) when collaborating with human developers on software projects. The core philosophy is to improve AI performance by providing structured workflows, clear principles, and mechanisms for integrating project-specific context via a "Memory Bank" system.
 
+## Pack Authoring Guide
+
+The `pack-authoring-guide/` directory contains a helper pack for contributors. It explains how to convert existing rules into a valid Rulebook-AI pack, includes a validation checklist, and provides starter docs and tools.
+
+## Rule Set Versions
+
 Three distinct versions are provided, catering to different needs regarding detail, prescriptiveness, and flexibility:
 
 1.  **`heavy-spec/`**: The original, highly detailed and prescriptive ruleset.
@@ -12,7 +18,7 @@ Three distinct versions are provided, catering to different needs regarding deta
 
 All versions share the same fundamental goal: enabling more effective human-AI teamwork on projects ranging from simple tasks to complex epics.
 
-## Rule Set Versions
+## Directory Layout
 
 Each version resides in its own subdirectory:
 

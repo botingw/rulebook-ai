@@ -17,7 +17,7 @@ The design of this feature is guided by the following core principles, which pri
 
 ## 3. Core Concepts
 
-1.  **Community Pack**: A standard Rule Pack, conforming to the `pack_developer_guide.md`, hosted in a public GitHub repository.
+1.  **Community Pack**: A standard Rule Pack that conforms to the [pack_structure_spec.md](../manage_rules/pack_structure_spec.md) (see `pack_developer_guide.md` for examples), hosted in a public GitHub repository.
 
 2.  **Public Index Repository**: A single, official, public Git repository that serves as a curated list of community packs. Its core is a `packs.json` file.
 
@@ -47,7 +47,7 @@ The trio `username`, `repo`, and optional `path` form a **slug** `username/repo[
 The following notes supplement the `packs` subcommands defined in [`manage_rules/spec.md`](../manage_rules/spec.md) with community-specific behavior.
 
 * **`packs list`** – merges built‑in packs with entries from the Local Index Cache. Community packs appear with a `(community)` label. No network calls are made.
-* **`packs add <input>`** – resolves `<input>` either as a direct GitHub slug (`username/repo[/path]`) or as a named pack from the unified list. If no match is found, the CLI aborts with a clear "pack not found" error. After resolving the source, the CLI clones, **warns and requires explicit user confirmation** before installing, reflecting the *User Empowerment Through Transparency* principle in the Design section. The pack is then structurally verified using the same checks described in the **Contribution Workflow** section; any validation failure aborts the install. If the pack's `manifest.yaml` `name` conflicts with an existing local pack, the command fails.
+* **`packs add <input>`** – resolves `<input>` either as a direct GitHub slug (`username/repo[/path]`) or as a named pack from the unified list. If no match is found, the CLI aborts with a clear "pack not found" error. After resolving the source, the CLI clones, **warns and requires explicit user confirmation** before installing, reflecting the *User Empowerment Through Transparency* principle in the Design section. The pack is then structurally verified against [pack_structure_spec.md](../manage_rules/pack_structure_spec.md); any validation failure aborts the install. If the pack's `manifest.yaml` `name` conflicts with an existing local pack, the command fails.
 * **`packs update`** – new command that:
     1. Fetches the latest `packs.json` from the Public Index Repository.
     2. Validates the JSON structure and required fields.
@@ -60,16 +60,16 @@ Before a pack can be added to the public index, it must meet several quality sta
 
 **Pack Requirements:**
 *   **Public GitHub Repository**: The pack must be hosted in a public GitHub repository.
-*   **Valid Structure**: It must adhere to the `pack_developer_guide.md`.
+*   **Valid Structure**: It must adhere to the [pack_structure_spec.md](../manage_rules/pack_structure_spec.md); `pack_developer_guide.md` offers examples but is not the source of truth.
 *   **High-Quality `README.md`**: The pack's own root `README.md` must clearly explain its purpose, philosophy, and usage.
 *   **Stability**: The pack should be reasonably stable. Highly experimental packs may not be accepted.
 
 The process for adding a new pack to the public index is as follows:
 
-1.  **Developer Creates Pack**: A developer creates a high-quality pack in their own public GitHub repository, ensuring it follows the `pack_developer_guide.md`.
+1.  **Developer Creates Pack**: A developer creates a high-quality pack in their own public GitHub repository, ensuring it follows the [pack_structure_spec.md](../manage_rules/pack_structure_spec.md).
 2.  **Submit Pull Request**: The developer submits a Pull Request to the `Index Repository`, adding their pack's metadata to the `packs.json` file.
     *   Including a specific `commit` or `tag` is **highly recommended** for security and stability, as it ensures users install a specific, reviewed version of the pack.
     *   If omitted, the pack will be installed from the default branch, which is less secure.
-3.  **Automated Validation (CI)**: A `GitHub Action` automatically runs on the Pull Request. This CI job performs a sanity check by cloning the pack's repository and validating its structure. This validation **must** include a check to ensure the `name` in the pack's `manifest.yaml` matches the `name` being submitted to `packs.json`. The CI check must fail if they do not match.
+3.  **Automated Validation (CI)**: A `GitHub Action` automatically runs on the Pull Request. This CI job performs a sanity check by cloning the pack's repository and validating its structure against [pack_structure_spec.md](../manage_rules/pack_structure_spec.md). This validation **must** include a check to ensure the `name` in the pack's `manifest.yaml` matches the `name` being submitted to `packs.json`. The CI check must fail if they do not match.
 4.  **Maintainer Review**: After CI passes, a maintainer performs a quick review of the submission (e.g., checking for appropriateness, clear documentation) and merges the PR.
 5.  **Public Availability**: Once merged, the pack becomes available for discovery to all users after they run `rulebook-ai packs update`.

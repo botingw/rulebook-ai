@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -32,15 +33,78 @@ def validate_pack_structure(
 ) -> tuple[str, Dict[str, Any]]:
     """Validate pack structure and optional name, returning name and manifest."""
     manifest_path = pack_root / "manifest.yaml"
+    readme_path = pack_root / "README.md"
     rules_dir = pack_root / "rules"
-    if not manifest_path.is_file() or not rules_dir.is_dir():
+
+    if not manifest_path.is_file() or not readme_path.is_file() or not rules_dir.is_dir():
         raise ValueError("Invalid pack structure.")
+
+    allowed_root = {
+        "manifest.yaml",
+        "README.md",
+        "rules",
+        "memory_starters",
+        "tool_starters",
+    }
+    for item in pack_root.iterdir():
+        if item.name not in allowed_root and not item.name.startswith("."):
+            raise ValueError(f"Unexpected item in pack root: {item.name}")
+
     manifest = yaml.safe_load(manifest_path.read_text()) or {}
-    name = manifest.get("name")
-    if not name:
-        raise ValueError("manifest.yaml missing 'name'.")
+    for field in ["name", "version", "summary"]:
+        if not manifest.get(field):
+            raise ValueError(f"manifest.yaml missing '{field}'.")
+    name = manifest["name"]
+    if not re.fullmatch(r"[A-Za-z0-9-]+", name):
+        raise ValueError(
+            "manifest name must be a slug: letters, digits, and dashes"
+        )
     if expected_name and name != expected_name:
         raise ValueError(f"name mismatch: {name} != {expected_name}")
+
+    rule_dirs = [d for d in rules_dir.iterdir() if d.is_dir()]
+    if not rule_dirs:
+        raise ValueError("rules/ must contain at least one numbered directory.")
+    prefixes: set[str] = set()
+    total_files = 0
+    for d in rule_dirs:
+        m = re.fullmatch(r"(\d{2})-rules(?:-([a-z0-9-]+))?", d.name)
+        if not m:
+            raise ValueError(f"Invalid rules directory name: {d.name}")
+        prefix, mode = m.groups()
+        if prefix in prefixes:
+            raise ValueError(f"Duplicate rules directory prefix: {prefix}")
+        prefixes.add(prefix)
+        if mode is None and d.name != "01-rules":
+            raise ValueError("Generic rules directory must be named '01-rules'.")
+
+        files = [f for f in d.iterdir() if f.is_file()]
+        if not files:
+            raise ValueError(f"{d.name} must contain at least one rule file.")
+        file_prefixes: set[str] = set()
+        for f in files:
+            if f.name.startswith("."):
+                raise ValueError(f"Hidden files not allowed: {f.name}")
+            if not f.suffix == ".md":
+                raise ValueError(f"Rule files must use .md extension: {f.name}")
+            mf = re.fullmatch(r"(\d{2})-.*\.md", f.name)
+            if not mf:
+                raise ValueError(f"Invalid rule file name: {f.name}")
+            fprefix = mf.group(1)
+            if fprefix in file_prefixes:
+                raise ValueError(
+                    f"Duplicate rule file prefix in {d.name}: {f.name}"
+                )
+            file_prefixes.add(fprefix)
+            try:
+                f.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                raise ValueError(f"Rule file not UTF-8 encoded: {f.name}")
+        total_files += len(files)
+
+    if total_files == 0:
+        raise ValueError("rules/ directories must contain at least one rule file.")
+
     return name, manifest
 
 
