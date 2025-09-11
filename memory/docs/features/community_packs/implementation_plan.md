@@ -20,6 +20,7 @@ The most fundamental action is **installing a single, known pack from a direct s
         b. **Validates** the contents of the temporary directory against the `pack_developer_guide.md` (e.g., `manifest.yaml` and `rules/` exist).
         c. **Verifies Identity:** Parses the `manifest.yaml` and confirms its `name` is valid, not reserved by built-in packs, and not already installed from a different source.
         d. **Returns** the validated pack's temporary path or throws an error.
+    *   *Testing Note: This workflow will be verified via `integration tests` using local mock Git repositories created under `tests/fixtures/`.*
 
 3.  **Task: Implement User Confirmation and Installation**
     *   If validation succeeds, present a clear warning to the user that they are installing un‑audited code from a direct URL.
@@ -91,3 +92,4 @@ The most fundamental action is **installing a single, known pack from a direct s
     *   It will run a script that performs the critical validation checks defined in the spec (e.g., cloning the submitted pack, checking its structure, and verifying the manifest name matches the index name).
 
 **Outcome of Phase 4:** The community has a place to submit packs and a clear, automated process for validating their submissions, completing the ecosystem loop.
+ing the ecosystem loop.

@@ -12,7 +12,8 @@ Track the implementation work required to support third-party rule packs.
 
 | Task ID | Description | Importance | Status | Dependencies |
 |:-------|:------------|:----------|:------|:-------------|
-| **1.1** | Parse `packs add` input as `username/repo[/path]` slug. | P0 | To Do | - |
+| **1.0** | Set up mock Git repos & test index for integration tests. | P0 | To Do | - |
+| **1.1** | Parse `packs add` input as `username/repo[/path]` slug. | P0 | To Do | 1.0 |
 | **1.2** | Fetch repository to temp dir and validate per `pack_developer_guide.md`. | P0 | To Do | 1.1 |
 | **1.3** | Prompt user, ensure `.rulebook-ai/packs/<name>` is free, then install. | P0 | To Do | 1.2 |
 
