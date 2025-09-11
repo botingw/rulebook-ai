@@ -16,11 +16,13 @@ CACHE_PATH = (
 def _create_repo(base: Path, slug: str) -> tuple[Path, str]:
     repo_dir = base / Path(slug)
     repo_dir.mkdir(parents=True)
-    (repo_dir / "rules").mkdir(parents=True)
-    (repo_dir / "rules" / "rule.txt").write_text("rule")
+    rules_dir = repo_dir / "rules" / "01-rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "01-rule.md").write_text("rule")
     (repo_dir / "manifest.yaml").write_text(
-        f"name: {Path(slug).name}\nversion: 0.1.0\n"
+        f"name: {Path(slug).name}\nversion: 0.1.0\nsummary: test pack\n"
     )
+    (repo_dir / "README.md").write_text("readme")
     subprocess.run(["git", "init"], cwd=repo_dir, capture_output=True)
     subprocess.run(
         ["git", "config", "user.email", "test@example.com"],
