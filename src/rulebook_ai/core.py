@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 from dataclasses import dataclass
@@ -213,12 +212,10 @@ class RuleManager:
     # Pack commands
     # ------------------------------------------------------------------
 
-    def list_packs(self) -> None:
+    def _builtin_packs(self) -> List[Dict[str, str]]:
         if not self.source_packs_dir.is_dir():
-            print(f"Error: Packs directory {self.source_packs_dir} not found.")
-            return
-
-        print("Available packs:")
+            return []
+        packs = []
         for pack_dir in sorted(
             [p for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith(".")],
             key=lambda p: p.name,
@@ -230,17 +227,66 @@ class RuleManager:
                 manifest = yaml.safe_load(manifest_path.read_text()) or {}
                 version = manifest.get("version", "unknown")
                 summary = manifest.get("summary", "")
-            print(f"  - {pack_dir.name} (v{version}) - {summary}")
+            packs.append({"name": pack_dir.name, "version": version, "summary": summary})
+        return packs
+
+    def list_packs(self) -> None:
+        builtins = self._builtin_packs()
+        from . import community_packs
+
+        index = community_packs.load_index_cache().get("packs", [])
+
+        print("Available packs:")
+        for entry in sorted(
+            [
+                {**b, "source": "built-in"} for b in builtins
+            ]
+            + [
+                {"name": p.get("name"), "description": p.get("description"), "source": "community"}
+                for p in index
+            ],
+            key=lambda e: e["name"],
+        ):
+            if entry["source"] == "built-in":
+                print(
+                    f"  - {entry['name']} (built-in, v{entry['version']}) - {entry['summary']}"
+                )
+            else:
+                print(
+                    f"  - {entry['name']} (community) - {entry['description']}"
+                )
 
         print(f"\nFor ratings and reviews of these packs, visit {RATINGS_REVIEWS_URL}")
 
     def add_pack(self, name: str, project_dir: Optional[str] = None) -> int:
         project_root = Path(project_dir).absolute() if project_dir else self.project_root
+
+        if "/" in name:
+            from . import community_packs
+
+            return community_packs.add_pack_from_slug(
+                name,
+                project_root,
+                self.source_packs_dir,
+                self._load_selection,
+                self._save_selection,
+            )
+
         source = self.source_packs_dir / name
         if not source.is_dir():
-            print(f"Pack '{name}' not found.")
-            self.list_packs()
-            return 1
+            from . import community_packs
+
+            result = community_packs.add_pack_from_index(
+                name,
+                project_root,
+                self.source_packs_dir,
+                self._load_selection,
+                self._save_selection,
+            )
+            if result != 0:
+                print(f"Pack '{name}' not found.")
+                self.list_packs()
+            return result
 
         dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
         if dest_dir.exists():
@@ -261,6 +307,11 @@ class RuleManager:
 
         print(f"Added pack '{name}'. Run 'project sync' to apply changes.")
         return 0
+
+    def update_community_index(self) -> int:
+        from . import community_packs
+
+        return community_packs.update_index_cache()
 
     def remove_pack(self, name: str, project_dir: Optional[str] = None) -> int:
         project_root = Path(project_dir).absolute() if project_dir else self.project_root

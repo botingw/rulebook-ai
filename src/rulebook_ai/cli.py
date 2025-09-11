@@ -35,6 +35,11 @@ def create_parser() -> argparse.ArgumentParser:
     remove_parser.add_argument("names", nargs="+")
     remove_parser.add_argument("--project-dir", "-p")
 
+    update_parser = packs_sub.add_parser(
+        "update", help="Refresh community pack index"
+    )
+    update_parser.add_argument("--project-dir", "-p")
+
     status_parser = packs_sub.add_parser("status", help="Show configured packs and profiles")
     status_parser.add_argument("--project-dir", "-p")
 
@@ -143,6 +148,8 @@ def handle_command(args: argparse.Namespace) -> int:
                 if result != 0:
                     rc = result
             return rc
+        if cmd == "update":
+            return rm.update_community_index()
         if cmd == "status":
             return rm.packs_status(project_dir)
 

@@ -20,6 +20,7 @@ The most fundamental action is **installing a single, known pack from a direct s
         b. **Validates** the contents of the temporary directory against the `pack_developer_guide.md` (e.g., `manifest.yaml` and `rules/` exist).
         c. **Verifies Identity:** Parses the `manifest.yaml` and confirms its `name` is valid, not reserved by built-in packs, and not already installed from a different source.
         d. **Returns** the validated pack's temporary path or throws an error.
+        e. **Reusable Validation:** expose the structure/name checks as a helper so the index CI can import the same logic.
     *   *Testing Note: This workflow will be verified via `integration tests` using local mock Git repositories created under `tests/fixtures/`.*
 
 3.  **Task: Implement User Confirmation and Installation**
@@ -28,6 +29,9 @@ The most fundamental action is **installing a single, known pack from a direct s
     *   Before moving files, check whether `.rulebook-ai/packs/<name>` already exists; abort if it comes from a different source.
     *   Upon confirmation, move the pack from the temporary directory into `.rulebook-ai/packs/<name>`.
     *   Ensure the temporary directory is always cleaned up, especially on error.
+
+4.  **Task: Persist Source Metadata**
+    *   After installation, record the pack's slug and commit hash in `pack.json` and in `.rulebook-ai/selection.json` so future commands can trace provenance.
 
 **Outcome of Phase 1:** A user can reliably and securely install any compatible pack if they know its GitHub URL slug (e.g., `rulebook-ai packs add my-org/my-cool-pack`).
 
@@ -45,15 +49,15 @@ The most fundamental action is **installing a single, known pack from a direct s
     *   This is the only command that will access the network for the index.
     *   Fetch the `packs.json` from the hardcoded official Index Repository URL.
     *   Validate the JSON structure and required fields.
-    *   Replace the local cache only on success; otherwise retain the previous file and report an error.
-
+    *   Retry the fetch once on failure; if it still fails or validation fails, retain the previous cache and surface a clear error message.
+    
 3.  **Task: Enhance `packs add` to Use the Index**
     *   Update the command's logic:
         a. First, check if the given `<input>` is a slug. If so, use the Phase 1 workflow.
         b. If not a slug, search for a pack with a matching `name` in the local index cache.
         c. If found, use the `repo`, `commit`, or `tag` from the index entry to fuel the secure fetch-and-validate workflow from Phase 1.
         d. Abort if the resolved `name` already exists locally from a different source.
-        e. Adjust warning messages based on whether the pack is pinned to a commit or tag.
+        e. Adjust warning messages based on whether the pack is pinned to a commit or tag, warning that unpinned installs may change unexpectedly.
 
 **Outcome of Phase 2:** A user can run `packs update` to discover new packs and then install them by their simple name (e.g., `rulebook-ai packs add python-pro-pack`).
 
@@ -81,15 +85,12 @@ The most fundamental action is **installing a single, known pack from a direct s
 **Objective:** To set up the external infrastructure needed for the community to thrive.
 
 1.  **Task: Create the Public Index GitHub Repository**
-    *   Initialize a new, public repository on GitHub.
-    *   Add the initial `packs.json` file.
-    *   Add a `README.md` explaining its purpose.
-    *   Add a `CONTRIBUTING.md` that explains the submission process (this can be adapted from the main `spec.md`).
+    *   This codebase ships a template under `community-index/` containing `packs.json`, `README.md`, and `CONTRIBUTING.md`.
+    *   To publish it, run `git init`, commit the files, and push to a new public GitHub repository (e.g., `rulebook-ai-community/index`).
 
 2.  **Task: Implement the CI Validation Workflow**
-    *   Create a GitHub Actions workflow within the new Index Repository.
-    *   This workflow will trigger on Pull Requests.
-    *   It will run a script that performs the critical validation checks defined in the spec (e.g., cloning the submitted pack, checking its structure, and verifying the manifest name matches the index name).
+    *   The template includes `.github/workflows/validate.yml` and `scripts/validate_index.py`.
+    *   The workflow runs on pull requests and clones each referenced pack to verify required files and `manifest.yaml` name alignment.
 
 **Outcome of Phase 4:** The community has a place to submit packs and a clear, automated process for validating their submissions, completing the ecosystem loop.
 ing the ecosystem loop.
