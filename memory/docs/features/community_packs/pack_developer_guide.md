@@ -97,7 +97,7 @@ The `name` field becomes the installation directory inside `.rulebook-ai/packs/<
     *   When converting an existing ruleset, decide which assistants you intend to support. If you only target mode-based assistants, this is less of a concern. If you want universal compatibility, you must review all rules to ensure they don't cause conflicts when flattened into a single context.
 
     **Best Practices for Pack Authors:**
-    *   **Use Numeric Prefixes:** Per the spec, directories and files under `rules/` **must** start with a zero‑padded `NN-` prefix to guarantee deterministic ordering. Leaving gaps (e.g., `10-`, `20-`) makes later inserts easier.
+    *   **Use Numeric Prefixes:** Per the spec, directories and files under `rules/` **must** start with a zero-padded `NN-` prefix to guarantee deterministic ordering. Leaving gaps (e.g., `10-`, `20-`) makes later inserts easier.
     *   **Name Directories for Mapping:** The name of a subdirectory after its prefix (e.g., `rules`, `rules-code`) directly determines the target folder for mode-based assistants. Ensure these match the target assistant's requirements.
 
 *   **`memory_starters/` & `tool_starters/` (Optional)**
@@ -112,3 +112,11 @@ rulebook-ai packs add local:<path-to-pack>
 ```
 
 For example: `rulebook-ai packs add local:./my-awesome-pack`. This command installs the pack locally and verifies its structure. You can remove it later with `rulebook-ai packs remove <name>` if needed.
+
+### Publishing Your Pack
+
+Once your pack is complete and validated locally, you can share it with the community. The process involves adding your pack to the public community index.
+
+The full contribution workflow is detailed in the [**Community Pack Ecosystem Specification**](spec.md). To contribute, please submit a Pull Request to the Index Repository located at:
+
+`https://github.com/botingw/community-index`

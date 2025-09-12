@@ -15,7 +15,7 @@ import yaml
 
 INDEX_CACHE_PATH = Path(__file__).parent / "community" / "index_cache" / "packs.json"
 DEFAULT_INDEX_URL = (
-    "https://raw.githubusercontent.com/rulebook-ai/community-index/main/packs.json"
+    "https://raw.githubusercontent.com/botingw/community-index/main/packs.json"
 )
 
 
