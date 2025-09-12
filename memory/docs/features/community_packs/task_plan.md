@@ -6,17 +6,18 @@ Track the implementation work required to support third-party rule packs.
 
 ---
 
-### Phase 1: Core Engine (Add by Slug)
+### Phase 1: Core Engine (Add by Source)
 
-**Description:** Allow installation from a direct GitHub slug.
+**Description:** Allow installation from explicit sources like a GitHub repository or a local path.
 
 | Task ID | Description | Importance | Status | Dependencies |
 |:-------|:------------|:----------|:------|:-------------|
 | **1.0** | Set up mock Git repos & test index for integration tests. | P0 | Done | - |
-| **1.1** | Parse `packs add` input as `username/repo[/path]` slug. | P0 | Done | 1.0 |
-| **1.2** | Fetch repository to temp dir and validate per `pack_developer_guide.md`. | P0 | Done | 1.1 |
-| **1.3** | Prompt user, ensure `.rulebook-ai/packs/<name>` is free, then install. | P0 | Done | 1.2 |
-| **1.4** | Persist source slug to pack and selection metadata; verify against built-in names. | P0 | Done | 1.3 |
+| **1.1** | Update `packs add` to resolve repository slugs via the `github:` prefix. | P0 | Done | 1.0 |
+| **1.2** | Implement `packs add` with the `local:` prefix to install from a local filesystem path. | P0 | Done | - |
+| **1.3** | Fetch repository to temp dir and validate per `pack_developer_guide.md`. | P0 | Done | 1.1 |
+| **1.4** | Prompt user, ensure `.rulebook-ai/packs/<name>` is free, then install. | P0 | Done | 1.2, 1.3 |
+| **1.5** | Persist source metadata to pack and selection files; verify against built-in names. | P0 | Done | 1.4 |
 
 ### Phase 2: Community Index
 

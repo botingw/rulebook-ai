@@ -11,11 +11,22 @@ This document outlines the test strategy for introducing community-maintained ru
 
 ---
 
-## Phase 1: Core Engine (Add by Slug)
-- [x] `test_add_pack_by_slug_installs_to_folder`: installing `username/repo` places files under `.rulebook-ai/packs/<name>`.
+## Phase 1: Core Engine (Add by Source)
+- [x] `test_add_pack_by_github_slug_installs_to_folder`: installing `github:username/repo` places files under `.rulebook-ai/packs/<name>`.
+- [x] `test_add_pack_by_local_path_installs_to_folder`: installing `local:path/to/pack` places files under `.rulebook-ai/packs/<name>`.
 - [x] `test_add_pack_conflicting_name_fails`: adding a pack whose `manifest.yaml` `name` already exists aborts.
 - [x] `test_add_pack_invalid_structure_fails`: missing required files triggers validation error.
-- [x] `test_add_pack_user_decline_aborts`: user choosing "no" cancels installation.
+- [x] `test_add_pack_user_decline_aborts`: user choosing "no" cancels installation for remote packs.
+- [x] `test_add_pack_by_github_slug_installs_to_folder`: installing `github:username/repo` places files under `.rulebook-ai/packs/<name>`.
+- [x] `test_add_pack_by_local_path_installs_to_folder`: installing `local:path/to/pack` places files under `.rulebook-ai/packs/<name>`.
+- [x] `test_add_pack_conflicting_name_fails`: adding a pack whose `manifest.yaml` `name` already exists aborts.
+- [x] `test_add_pack_invalid_structure_fails`: missing required files triggers validation error.
+- [x] `test_add_pack_user_decline_aborts`: user choosing "no" cancels installation for remote packs.
+- [x] `test_add_pack_by_github_slug_installs_to_folder`: installing `github:username/repo` places files under `.rulebook-ai/packs/<name>`.
+- [x] `test_add_pack_by_local_path_installs_to_folder`: installing `local:path/to/pack` places files under `.rulebook-ai/packs/<name>`.
+- [x] `test_add_pack_conflicting_name_fails`: adding a pack whose `manifest.yaml` `name` already exists aborts.
+- [x] `test_add_pack_invalid_structure_fails`: missing required files triggers validation error.
+- [x] `test_add_pack_user_decline_aborts`: user choosing "no" cancels installation for remote packs.
 
 ## Phase 2: Community Index
 - [x] `test_packs_update_refreshes_cache`: `packs update` replaces `rulebook_ai/community/index_cache/packs.json` when fetch succeeds.

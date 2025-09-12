@@ -33,10 +33,11 @@ This document outlines the updated test strategy for the refined CLI design that
 ### `packs list`
  - [x] `test_packs_list_shows_manifest_info`: Output lists pack names, versions, and descriptions.
 
-### `packs add <name>`
+### `packs add <input>`
  - [x] `test_add_pack_updates_selection`: Pack added to `selection.json` and copied to `.rulebook-ai/packs/` without touching `memory/` or `tools/`.
  - [x] `test_add_multiple_packs`: Multiple packs can be added in one command.
  - [x] `test_add_nonexistent_pack_fails`: Adding unknown pack exits with error.
+ - [x] `test_add_pack_by_local_path`: `packs add local:<path>` copies pack and updates selection.
 
 ### `packs remove <name>`
  - [x] `test_remove_pack_updates_selection`: Pack removed from `selection.json` and `.rulebook-ai/packs/`.

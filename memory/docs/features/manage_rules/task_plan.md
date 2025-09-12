@@ -105,3 +105,4 @@ Track the implementation work required to migrate the CLI to the composable Pack
 | **7.6** | Review existing tests and remove or update ones tied to implicit sync or deprecated commands. | P1 | Completed | 7.3 |
 | **7.7** | Add integration tests for `profiles` and `project` command group workflows. | P0 | Completed | 7.3 |
 | **7.8** | Implement `project clean-context` command with non-interactive flags; plan further interactive prompts. | P3 | Completed | 7.3 |
+| **7.9** | Refactor `packs add` to use a prefix-based system (`local:`, `github:`) for specifying pack sources, removing ambiguous resolution. | P0 | Completed | 7.1 |

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import shutil
+import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,10 +15,11 @@ import webbrowser
 import yaml
 
 from .assistants import ASSISTANT_MAP, SUPPORTED_ASSISTANTS, AssistantSpec
+from .community_packs import validate_pack_structure
 
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 # Constants
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 
 SOURCE_PACKS_DIR = "packs"
 
@@ -31,9 +33,9 @@ RATINGS_REVIEWS_URL = (
 )
 
 
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 # Helper data structures
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 
 @dataclass
 class SelectionState:
@@ -41,9 +43,9 @@ class SelectionState:
     profiles: Dict[str, List[str]]
 
 
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 # RuleManager
-# ---------------------------------------------------------------------------
+# --------------------------------------------------------------------------- 
 
 
 class RuleManager:
@@ -258,22 +260,87 @@ class RuleManager:
 
         print(f"\nFor ratings and reviews of these packs, visit {RATINGS_REVIEWS_URL}")
 
-    def add_pack(self, name: str, project_dir: Optional[str] = None) -> int:
+    def add_pack(self, name_or_path: str, project_dir: Optional[str] = None) -> int:
         project_root = Path(project_dir).absolute() if project_dir else self.project_root
 
-        if "/" in name:
+        # Handle local paths
+        if name_or_path.startswith("local:"):
+            local_path_str = name_or_path.split(":", 1)[1]
+            source = Path(local_path_str).expanduser().resolve()
+            if not source.is_dir():
+                print(f"Error: Local path not found at '{source}'", file=sys.stderr)
+                return 1
+
+            try:
+                pack_name, manifest = validate_pack_structure(source)
+            except ValueError as e:
+                print(f"Error: Invalid local pack at '{source}': {e}", file=sys.stderr)
+                return 1
+
+            dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / pack_name
+            if dest_dir.exists():
+                print(
+                    f"Error: Pack '{pack_name}' already installed from a different source. Please remove it first.",
+                    file=sys.stderr,
+                )
+                return 1
+
+            dest_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, dest_dir)
+
+            selection = self._load_selection(project_root)
+            version = manifest.get("version", "0.0.0")
+            if not any(p["name"] == pack_name for p in selection.packs):
+                selection.packs.append({"name": pack_name, "version": version, "source": "local"})
+            self._save_selection(project_root, selection)
+
+            print(f"Added pack '{pack_name}' from local path. Run 'project sync' to apply changes.")
+            return 0
+
+        # Handle GitHub slugs
+        if name_or_path.startswith("github:"):
+            slug = name_or_path.split(":", 1)[1]
             from . import community_packs
 
             return community_packs.add_pack_from_slug(
-                name,
+                slug,
                 project_root,
                 self.source_packs_dir,
                 self._load_selection,
                 self._save_selection,
             )
 
+        # Handle built-in and index packs by name
+        name = name_or_path
         source = self.source_packs_dir / name
-        if not source.is_dir():
+        if source.is_dir():  # It's a built-in pack
+            dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
+            if dest_dir.exists():
+                if (dest_dir / "pack.json").exists():
+                    print(
+                        f"Error: Pack '{name}' already installed from a community source. Cannot overwrite with a built-in pack.",
+                        file=sys.stderr,
+                    )
+                    return 1
+                # It's a re-install of a built-in, which is fine.
+                shutil.rmtree(dest_dir)
+
+            dest_dir.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, dest_dir)
+
+            selection = self._load_selection(project_root)
+            manifest_file = dest_dir / "manifest.yaml"
+            version = "0.0.0"
+            if manifest_file.exists():
+                manifest = yaml.safe_load(manifest_file.read_text()) or {}
+                version = manifest.get("version", "0.0.0")
+            if not any(p["name"] == name for p in selection.packs):
+                selection.packs.append({"name": name, "version": version, "source": "built-in"})
+            self._save_selection(project_root, selection)
+
+            print(f"Added pack '{name}'. Run 'project sync' to apply changes.")
+            return 0
+        else:  # Try to find it in the community index
             from . import community_packs
 
             result = community_packs.add_pack_from_index(
@@ -284,29 +351,9 @@ class RuleManager:
                 self._save_selection,
             )
             if result != 0:
-                print(f"Pack '{name}' not found.")
+                print(f"Pack '{name}' not found as a built-in pack or in the community index.")
                 self.list_packs()
             return result
-
-        dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
-        if dest_dir.exists():
-            shutil.rmtree(dest_dir)
-        dest_dir.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(source, dest_dir)
-
-        # Update selection.json
-        selection = self._load_selection(project_root)
-        manifest_file = dest_dir / "manifest.yaml"
-        version = "0.0.0"
-        if manifest_file.exists():
-            manifest = yaml.safe_load(manifest_file.read_text()) or {}
-            version = manifest.get("version", "0.0.0")
-        if not any(p["name"] == name for p in selection.packs):
-            selection.packs.append({"name": name, "version": version})
-        self._save_selection(project_root, selection)
-
-        print(f"Added pack '{name}'. Run 'project sync' to apply changes.")
-        return 0
 
     def update_community_index(self) -> int:
         from . import community_packs

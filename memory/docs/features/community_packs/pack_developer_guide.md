@@ -34,7 +34,7 @@ The root of a pack may contain only the items shown above. `manifest.yaml`, `REA
 This file contains essential metadata for the pack.
 
 **Required Fields:**
-*   `name` (string): A globally unique, machine-friendly slug for the pack (e.g., `My-Awesome-Pack`). Letters, digits, and dashes are allowed (`^[A-Za-z0-9-]+$`).
+*   `name` (string): A globally unique, machine-friendly slug for the pack (e.g., `My-Awesome-Pack`). Letters, digits, and dashes are allowed (`^[A-Za-z0-9-]+).
 *   `version` (string): The version of the pack, preferably using Semantic Versioning (e.g., `1.0.0`).
 *   `summary` (string): A brief, one-sentence description of the pack's purpose.
 
@@ -105,10 +105,10 @@ The `name` field becomes the installation directory inside `.rulebook-ai/packs/<
 
 ### Local Validation
 
-Before publishing, run:
+Before publishing, run the `packs add` command with the `local:` prefix:
 
 ```
-rulebook-ai packs add <path-to-pack>
+rulebook-ai packs add local:<path-to-pack>
 ```
 
-This command installs the pack locally and verifies the structure using `validate_pack_structure`. You can remove it later with `rulebook-ai packs remove <name>` if needed.
+For example: `rulebook-ai packs add local:./my-awesome-pack`. This command installs the pack locally and verifies its structure. You can remove it later with `rulebook-ai packs remove <name>` if needed.

@@ -48,7 +48,7 @@ def test_add_pack_by_slug_installs_to_folder(tmp_path, run_cli):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     result = run_cli(
-        ["packs", "add", slug],
+        ["packs", "add", f"github:{slug}"],
         project_dir,
         input_text="yes\n",
         env={"RULEBOOK_AI_GIT_BASE": str(base)},
@@ -74,7 +74,7 @@ def test_add_pack_conflicting_name_fails(tmp_path, run_cli):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     result = run_cli(
-        ["packs", "add", slug],
+        ["packs", "add", f"github:{slug}"],
         project_dir,
         input_text="yes\n",
         env={"RULEBOOK_AI_GIT_BASE": str(base)},
@@ -91,7 +91,7 @@ def test_add_pack_invalid_structure_fails(tmp_path, run_cli):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     result = run_cli(
-        ["packs", "add", slug],
+        ["packs", "add", f"github:{slug}"],
         project_dir,
         input_text="yes\n",
         env={"RULEBOOK_AI_GIT_BASE": str(base)},
@@ -108,7 +108,7 @@ def test_add_pack_user_decline_aborts(tmp_path, run_cli):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     result = run_cli(
-        ["packs", "add", slug],
+        ["packs", "add", f"github:{slug}"],
         project_dir,
         input_text="no\n",
         env={"RULEBOOK_AI_GIT_BASE": str(base)},
@@ -117,3 +117,34 @@ def test_add_pack_user_decline_aborts(tmp_path, run_cli):
     dest = project_dir / ".rulebook-ai" / "packs" / "decline-pack"
     assert not dest.exists()
 
+def test_add_pack_by_local_path(tmp_path, run_cli):
+    # 1. Create a local pack directory
+    local_pack_dir = tmp_path / "my-local-pack"
+    rules_dir = local_pack_dir / "rules" / "01-rules"
+    rules_dir.mkdir(parents=True)
+    (rules_dir / "01-rule.md").write_text("local rule")
+    (local_pack_dir / "manifest.yaml").write_text(
+        "name: my-local-pack\nversion: 1.0.0\nsummary: A local test pack\n"
+    )
+    (local_pack_dir / "README.md").write_text("readme")
+
+    # 2. Run the CLI command
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+    result = run_cli(
+        ["packs", "add", f"local:{local_pack_dir}"],
+        project_dir,
+    )
+
+    # 3. Assert results
+    assert result.returncode == 0, result.stderr
+    dest = project_dir / ".rulebook-ai" / "packs" / "my-local-pack"
+    assert dest.is_dir()
+    assert (dest / "rules" / "01-rules" / "01-rule.md").read_text() == "local rule"
+
+    selection = json.loads(
+        (project_dir / ".rulebook-ai" / "selection.json").read_text()
+    )
+    entry = selection["packs"][0]
+    assert entry["name"] == "my-local-pack"
+    assert entry["version"] == "1.0.0"
