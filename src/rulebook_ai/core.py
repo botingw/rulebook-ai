@@ -588,7 +588,7 @@ class RuleManager:
 
             line = f"  - {assistant}: Last synced at {ts} from "
             if mode == "profile":
-                line += f"profile '{info.get("profile")}'"
+                line += f"profile '{info.get('profile')}'"
             elif mode == "pack":
                 line += "ad-hoc packs"
             else:  # all
