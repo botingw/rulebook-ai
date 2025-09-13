@@ -14,8 +14,9 @@
 # Install uv if you don't have it yet
 curl -fsSL https://astral.sh/uv/install.sh | bash
 
-# Install rulebook-ai in an ephemeral environment and run it
-uvx rulebook-ai install --rule-set light-spec
+# Install rulebook-ai in an ephemeral environment and add a pack
+uvx rulebook-ai packs add light-spec
+uvx rulebook-ai project sync  # apply pack contents to your workspace
 
 # Or create a persistent environment
 uv venv
@@ -23,6 +24,20 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
 rulebook-ai doctor  # Check your setup
 ```
+
+## Built-in Packs
+
+Rulebook-AI ships with three packs that you can add to your project:
+
+- **light-spec** – minimal guardrails for rapid prototyping.
+- **medium-spec** – balanced guidelines for everyday development.
+- **heavy-spec** – verbose, step-by-step rules for thorough reviews.
+
+`rulebook-ai packs add <name>` copies the chosen pack into `.rulebook-ai/packs/` along with any bundled memory or tool starters. Run `rulebook-ai project sync` to copy those starters into `memory/` and `tools/` and to generate assistant-specific rules.
+
+## Contributing Packs
+
+Want to share your own pack? See the [Pack Developer Guide](memory/docs/features/community_packs/pack_developer_guide.md) for structure and publishing instructions. For hands-on help, add the built-in `pack-authoring-guide` (`rulebook-ai packs add pack-authoring-guide`) which walks you through converting rules into a pack and provides checklists and validation tools before submission.
 
 ## Supercharge Your AI Coding Workflow Across Cursor, CLINE, Claude Code, Codex CLI, Gemini CLI, Kilo Code, RooCode, Warp, Windsurf, and Github Copilot
 
@@ -57,39 +72,8 @@ This template is particularly beneficial for:
 4.  **Optimize Token Usage:** Rules are organized to leverage platform-specific loading mechanisms (where available) to minimize unnecessary token consumption.
 5.  **Latest Compatibility:** Designed and tested with recent versions of the supported AI assistants.
 
-## Leveraging Your AI's Enhanced Brain: Example Interactions
-
-Once Rulebook-AI is set up with a chosen rule set (in `project_rules/`) and the memory bank (in `memory/`), you can interact with your AI coding assistant much more effectively. Here are a few crucial examples of how to leverage this enhanced context and guidance. Remember to use your AI assistant's specific syntax for referencing files (e.g., `@filename` in Cursor or Copilot).
-
-1.  **Maintain Project Structure & Planning:**
-    *   **Goal:** Use the AI to help keep your project documentation and task lists up-to-date.
-    *   **Example Prompt (in your AI chat):**
-        ```
-        Based on section 3.2 of @memory/docs/product_requirement_docs.md, create three new tasks in @memory/tasks/tasks_plan.md for the upcoming 'User Profile Redesign' feature. For each task, include a brief description, assign it a unique ID, and estimate its priority (High/Medium/Low).
-        ```
-    *   **Why this is important:** This demonstrates the AI actively participating in project management by updating the "memory bank" itself. It ensures your planning documents stay synchronized with insights derived from foundational requirements, turning the AI into a proactive assistant beyond just code generation.
-2.  **Retrieve Context-Specific Information Instantly:**
-    *   **Goal:** Quickly access key project details without manually searching through documents.
-    *   **Example Prompt (in your AI chat):**
-        ```
-        What is the current status of task 'API-003' as listed in @memory/tasks/tasks_plan.md? Also, remind me which database technology we decided on according to @memory/docs/architecture.md.
-        ```
-    *   **Why this is important:** This highlights the power of the "persistent memory bank." The AI acts as a knowledgeable team member, capable of quickly recalling specific project decisions, technical details, and task statuses, significantly improving your workflow efficiency.
-3.  **Implement Features with Deep Context & Guided Workflow:**
-    *   **Goal:** Guide the AI to develop code by following defined procedures and referencing precise project context.
-    *   **Example Prompt (in your AI chat):**
-        ```
-        Using the workflow defined in @project_rules/implement.md, please develop the `updateUserProfile` function. The detailed requirements for this function are specified under the 'User Profile Update' task in @memory/tasks/active_context.md. Ensure the implementation aligns with the API design guidelines found in @memory/docs/technical.md.
-        ```
-    *   **Why this is important:** This is the core development loop where Rulebook-AI shines. It shows the AI leveraging both the *procedural rules* (how to approach implementation, from `project_rules/
-`) and the rich *contextual memory* (what to implement and its surrounding technical landscape, from `memory/
-`). This leads to more accurate, consistent, and context-aware code generation, reducing rework and improving quality.
-
-These examples illustrate how providing structured rules and a persistent memory bank allows for more sophisticated and productive interactions with your AI coding assistant. Experiment with referencing different files from your `project_rules/
-` and `memory/
-` directories to best suit your workflow.
-
 ## Quickstart: Using this Template for AI Coding
+
 
 This template repository serves as the central source for master rule sets. To use these rules in your own projects, you'll utilize the `src/rulebook_ai/cli.py` script (or rulebook-ai command with 'pip install -e .') provided within *this* repository.
 
@@ -301,116 +285,8 @@ For **Windsurf**, rules are generated in the `.windsurf/rules/` directory, with 
 └── 02-another-rule.md
 ```
 
-## Key Files and Concepts
+## Directory Structure: Modular Project Organization
 
-This template is organized around three core files, each addressing a critical aspect of the development process:
-
-### 1. Plan/Implement/Debug: Systematic Workflow for Tasks
-
-The `rules` files (located in `clinerules/rules` and `cursor/rules/rules.mdc`) define a structured, five-phased workflow for approaching any development task, regardless of granularity. This workflow is based on standard software engineering best practices and promotes a systematic approach to problem-solving.
-
-**Five-Phased Workflow:**
-
-**(i) Requirements and Clarifications:**
-
-   it starts with making the requirements very clear and asking as much clarification as possible in the beginning. This is always the first task software development. Where all the requirements are made as precise and verbose as possible so as to save Time and effort later in redoing. Plus anticipate Major bottlenecks ahead of any work.
-
-**(ii) Exhaustive Searching and Optimal Plan:**
-  exhaustive searching and optimal plan: search all possible directions in which the problem can be solved. And find out the optimal solution, which can be also a amalgamation of many different approaches. And reason rigourously, why the chosen approach is optimal.
-
-**(iii) User Validation:**
-
-  validate the developed optimal plan with the user clearly stating the assumptions and design decisions made, and the reasons for them.
-
-**(iv) Implementation:**
-
-   implement proposed plan in an iterative way, taking one functionality at a time, testing it exhaustively with all the cases. And then building the next functionality. In this way to make the system, robust and incremental.
-
-**(v) Further Suggestions:**
-
-   after implementation, suggesting possible optimisation to be done or possible, additional features for security or functionality to be added.
-
-So this five phased approach, is for a software life-cycle. But this can be applied for any grnuarlity, like entire project or a single functionality. For example, very clearly recording the requirement for the functionality and asking clarifying questions is as good for a single small functionality as for a program.
-So this five phased, solution strategy workflow is to be followed at every part of development.
-
-### 2. Memory: Persistent Project Documentation
-
-The `memory` files (located in `clinerules/memory` and `cursor/rules/memory.mdc`) establish a robust documentation system that serves as persistent memory for the project and the AI assistant. This system is inspired by standard software development documentation practices, including PRDs, architecture plans, technical specifications, and RFCs. So, keeping these software life-cycle documentation is as focus. We develop our memory bank to have these document in sync to provide the complete context for the project. We have few additional files for current context and task plan in tasks/.
-
-**Memory Files Structure:**
-
-The memory system is structured into Core Files (required) and Context Files (optional), forming a hierarchical knowledge base for the project.
-```mermaid
-flowchart TD
-    PRD[product_requirement_docs.md] --> TECH[technical.md]
-    PRD --> ARCH[docs/architecture.md]
-
-    ARCH --> TASKS[tasks/tasks_plan.md]
-    TECH --> TASKS
-    PRD --> TASKS
-
-    TASKS --> ACTIVE[tasks/active_context.md]
-
-    ACTIVE --> ERROR[.cursor/rules/error-documentation.mdc]
-    ACTIVE --> LEARN[.cursor/rules/lessons-learned.mdc]
-
-    subgraph LIT[docs/literature]
-        L1[Research 1]
-        L2[Research 2]
-    end
-
-    subgraph RFC[tasks/rfc]
-        R1[RFC 1]
-        R2[RFC 2]
-    end
-
-    TECH --o LIT
-    TASKS --o RFC
-
-```
-
-**Core Files (Required):**
-
-1.  **`product_requirement_docs.md` (docs/product_requirement_docs.md):** Product Requirement Document (PRD) or Standard Operating Procedure (SOP).
-    - Defines the project's purpose, problems it solves, core requirements, and goals.
-    - Serves as the foundational document and source of truth for project scope.
-
-    Product Requirement Documents (PRDs) are foundational blueprints in software development, defining what a product should achieve and guiding teams to align on scope, features, and objectives .
-
-2.  **`architecture.md` (docs/architecture.md):** System Architecture Document.
-    - Outlines the system's design, component relationships, and dependencies.
-
-    Software architecture documentation is a blueprint that captures design decisions, component interactions, and non-functional requirements.
-
-3.  **`technical.md` (docs/technical.md):** Technical Specifications Document.
-    - Details the development environment, technologies used, key technical decisions, design patterns, and technical constraints.
-
-4.  **`tasks_plan.md` (tasks/tasks_plan.md):** Task Backlog and Project Progress Tracker.
-    - Provides an in-depth list of tasks, tracks project progress, current status, and known issues.
-
-5.  **`active_context.md` (tasks/active_context.md):** Active Development Context.
-    - Captures the current focus of development, active decisions, recent changes, and next steps.
-
-6.  **`error-documentation.mdc` (.cursor/rules/error-documentation.mdc):** Error Documentation.
-    - Documents reusable fixes for mistakes and corrections, serving as a knowledge base of known issues and resolutions.
-
-7.  **`lessons-learned.mdc` (.cursor/rules/lessons-learned.mdc):** Lessons Learned Journal.
-    - A project-specific learning journal that captures patterns, preferences, and project intelligence for continuous improvement.
-
-**Context Files (Optional):**
-
-**NOTE**: I use LATEX, but you can use .md or any other format.
-1.  **`docs/literature/`:** Literature Survey and Research Directory.
-    - Contains research papers and literature surveys in LaTeX format (`docs/literature/*.tex`).
-
-2.  **`tasks/rfc/`:** Request for Comments (RFC) Directory.
-    - Stores RFCs for individual tasks in LaTeX format (`tasks/rfc/*.tex`), providing detailed specifications and discussions for specific functionalities.
-
-**Additional Context:**
-
-Further files and folders can be added within `docs/` or `tasks/` to organize supplementary documentation such as integration specifications, testing strategies, and deployment procedures.
-
-### 3. Directory Structure: Modular Project Organization
 
 The `directory-structure` files (located in `clinerules/directory-structure` and `cursor/rules/directory-structure.mdc`) define a clear and modular directory structure to organize project files logically. This structure promotes separation of concerns and enhances project maintainability. This is a very simple file stating the directory structure so that all parts of a project development is covered like : (a) code, (b) test, (c) configurations, (d) data, e.g. project rules, etc separately and in modular approach.
 
