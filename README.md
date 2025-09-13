@@ -50,6 +50,24 @@ This will create a `.rulebook-ai` directory to manage state, and populate `memor
 
 For a more detailed walkthrough of all features, see the [Step-by-Step Tutorial](memory/docs/user_guide/tutorial.md).
 
+## Supported AI Assistants
+
+`rulebook-ai` supports generating rule files for multiple AI coding assistants. Supported assistants include: Cursor, Windsurf, Cline, RooCode, Kilo Code, Warp, GitHub Copilot, Claude Code, Codex CLI, and Gemini CLI.
+
+For detailed per‑assistant behavior, file locations, and format notes, see: `memory/docs/user_guide/supported_assistants.md`.
+
+You can generate rules for one or more assistants using the `--assistant` flag, for example:
+
+```
+rulebook-ai project sync --assistant cursor copilot
+```
+
+Or generate rules for all supported assistants with:
+
+```
+rulebook-ai project sync --all
+```
+
 ## How It Works: The Pack System
 
 The core of `rulebook-ai` is a simple, powerful workflow:
