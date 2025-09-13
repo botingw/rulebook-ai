@@ -27,7 +27,7 @@ my-awesome-pack/
     └── my-custom-script.py
 ```
 
-The root of a pack may contain only the items shown above. `manifest.yaml`, `README.md`, and `rules/` are required; `memory_starters/` and `tool_starters/` are optional. Extra files or directories can cause `packs add` to fail.
+The root of a pack may contain **only** the items shown above: `manifest.yaml`, `README.md`, `rules/`, and the optional `memory_starters/` and `tool_starters/`. **No other files or directories are permitted at the root.** Any extra files or directories (such as for tests, examples, or documentation) are a direct violation of the pack structure and **will cause validation to fail**. Such content must be placed inside one of the standard directories, for example `memory_starters/docs/`.
 
 ### `manifest.yaml` (Required)
 
