@@ -1,3 +1,34 @@
+# The Easy Way to Get Started: Use the Authoring Guide Pack
+
+While this document contains the full technical specification for creating a pack, the easiest way to get started is to use `rulebook-ai` itself.
+
+We have created a special pack, `pack-authoring-guide`, that turns your AI assistant into an expert on the **pack structure and publishing process**. It loads the AI's context with all the specifications, checklists, and validation tools needed to guide you.
+
+**This pack's specialty is helping you convert your existing rules, context, and tools into a valid, shareable pack.** It is not designed to be an expert on prompt engineering or tool design itself.
+
+**We strongly recommend this approach for all new contributors.**
+
+### Quick Start for Pack Authoring
+
+1.  **Add the guide pack to any project:**
+    ```bash
+    rulebook-ai packs add pack-authoring-guide
+    ```
+
+2.  **Sync it to your workspace:**
+    ```bash
+    rulebook-ai project sync --pack pack-authoring-guide
+    ```
+
+3.  **Start converting with your AI:**
+    You can now ask your AI for help packaging your existing materials. For example:
+    > *"Hey AI, I have a folder of markdown files with my rules and some Python scripts I use as tools. Using the `pack-authoring-guide` context, help me convert them into a valid `rulebook-ai` pack. Where should I start?"*
+
+This interactive workflow is much smoother and less error-prone than reading the specification manually.
+
+---
+<br>
+
 # Rulebook-AI Pack Developer Guide
 
 A Rulebook-AI Pack is a self-contained directory that bundles rules, starter files, and metadata. The purpose of this guide is to provide a specification so clear that a developer or an AI assistant can read it and correctly structure a rule pack that is universally compatible with `rulebook-ai`.
@@ -112,3 +143,11 @@ rulebook-ai packs add local:<path-to-pack>
 ```
 
 For example: `rulebook-ai packs add local:./my-awesome-pack`. This command installs the pack locally and verifies its structure. You can remove it later with `rulebook-ai packs remove <name>` if needed.
+
+### Publishing Your Pack
+
+Once your pack is complete and validated locally, you can share it with the community. The process involves adding your pack to the public community index.
+
+The full contribution workflow is detailed in the [**Community Pack Ecosystem Specification**](spec.md). To contribute, please submit a Pull Request to the Index Repository located at:
+
+`https://github.com/botingw/community-index`

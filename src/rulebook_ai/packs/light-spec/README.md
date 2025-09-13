@@ -1,5 +1,27 @@
 # Light-Spec Pack
 
+## Overview
+
+The `light-spec` pack transforms your AI assistant into a junior software developer that deeply understands your project. By leveraging established software engineering principles and a structured documentation system, this pack ensures your AI assistants (like Cursor, CLINE, RooCode, Windsurf, and Github Copilot) operate consistently, understand your project's architecture, and follow optimal workflows.
+
+### Why Use This Pack?
+
+In modern software development, AI assistants often lack the context to perform beyond simple, one-shot tasks. They don't understand your project's history, its architectural decisions, or your team's conventions. This pack solves that by creating a "second brain" for your AI, enabling it to act as a true partner in building sophisticated applications.
+
+### Who Is This For?
+
+*   **Individual Developers & Small Teams:** Build complex projects with the discipline of a large, well-organized team.
+*   **AI-Forward Engineers:** Get the most out of your AI tools by providing them with the structure they need to excel.
+*   **Prototypers & Innovators:** Move beyond simple scripts and build robust, well-documented applications from day one.
+
+### Key Features
+
+*   **Structured Memory:** A dedicated `memory/` directory provides your AI with long-term, context-rich knowledge about your project (PRDs, architecture, tasks).
+*   **Systematic Workflows:** Pre-defined rules for planning, implementation, and debugging ensure consistent, high-quality output.
+*   **Cross-Platform Compatibility:** Write rules once and use them across multiple AI coding assistants. The `rulebook-ai` tool handles the translation.
+*   **Reduced Setup Time:** The pack provides a ready-to-use structure, including tool starters and documentation templates, so you can get started quickly.
+*   **Extensible Tooling:** A `tools/` directory with its own environment setup allows you to add custom scripts and capabilities that your AI can leverage.
+
 Light-Spec is the most concise ruleset in the Rulebook-AI collection. It focuses on core principles and assumes a highly capable AI model paired with an experienced team. Use it when speed and flexibility are more important than exhaustive guardrails.
 
 ## When to Choose Light-Spec
@@ -28,6 +50,58 @@ uvx rulebook-ai project sync --assistant cursor --project-dir /path/to/your/proj
 ```
 
 Add `memory/`, `tools/`, `env.example`, and `requirements.txt` to version control. Framework state in `.rulebook-ai/` and generated rule directories (e.g., `.cursor/`, `.clinerules/`, `.roo/`) should go in `.gitignore`.
+
+## Tooling Environment Setup
+
+The `light-spec` pack includes a `tool_starters/` directory that gets copied into your project's `tools/` directory. These are Python scripts that your AI assistant can be instructed to use for tasks like web scraping or searching. To make them work, you need to set up their environment.
+
+1.  **Navigate to the `tools` directory:**
+    ```bash
+    cd /path/to/your/project/tools
+    ```
+
+2.  **Create and activate a virtual environment:**
+    This isolates the tools' dependencies from your main project.
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    The required Python packages are listed in `requirements.txt`.
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+4.  **Configure Environment Variables:**
+    Some tools may require API keys or other secrets.
+    -   Copy the example environment file: `cp .env.example .env`
+    -   Edit the `.env` file and add your secrets (e.g., `OPENAI_API_KEY=...`).
+    -   The scripts in `tools/` are pre-configured to load variables from this `.env` file.
+
+Your AI can now be instructed to run these tools to perform tasks, and they will have the necessary environment and dependencies.
+
+## Core Philosophy and File Structure
+
+This pack is built on the idea that an AI assistant's behavior can be guided by a combination of procedural rules and contextual memory, rooted in established software engineering practices.
+
+- **Rule Files (`plan.md`, `implement.md`, `debug.md`):** These files define *how* the AI should approach tasks. They dictate specific, systematic workflows for planning, coding, and debugging.
+  - **`plan`**: Defines a workflow for planning based on *chain of thought*, including exhaustive searching, rigorous reasoning, and user validation.
+  - **`implement`**: Defines a workflow for implementation inspired by concepts like separation of concerns, modular design, and incremental development, with mandatory testing.
+  - **`debug`**: Defines rules for debugging, including using web search for previously solved errors.
+
+- **Memory Files (`memory/`):** These files provide the AI with *what* it needs to know—the persistent, structured knowledge about your specific project, including requirements, architecture, and tasks. This forms the AI's long-term project "memory." For a deeper dive into the theory behind these software documents, see the [Software Documentation Guides](../../../../../memory/docs/user_guide/software_documentation_guides.md).
+
+- **Directory Structure Rule:** A rule is included to encourage a clear and modular project directory structure, promoting separation of concerns (e.g., `src/`, `tests/`, `config/`).
+
+### Assistant-Specific Rule Generation
+
+The `project sync` command processes these core ideas and generates the appropriate files for different AI assistants. For example:
+
+- **Cursor:** Generates individual `.mdc` files in `.cursor/rules/`.
+- **RooCode:** Generates mode-specific rules in directories like `.roo/rules-architect/` and `.roo/rules-code/`.
+- **Windsurf:** Generates individual `.md` rule files in `.windsurf/rules/`.
+- **Single-File Assistants (Warp, GitHub Copilot, etc.):** Concatenates all rules into a single file.
 
 ## Key Concepts & Prompting Tips
 
