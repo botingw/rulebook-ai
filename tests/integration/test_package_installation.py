@@ -27,6 +27,13 @@ def test_cli_module_import():
     print("✅ Successfully imported CLI module")
 
 
+def test_community_packs_module_import():
+    """Test that community_packs module can be imported."""
+    from rulebook_ai import community_packs
+    assert hasattr(community_packs, 'validate_pack_structure')
+    print("✅ Successfully imported community_packs module")
+
+
 def test_rule_manager_instantiation():
     """Test that RuleManager can be instantiated."""
     from rulebook_ai.core import RuleManager
@@ -45,7 +52,7 @@ def test_package_structure():
     import inspect
     
     # Check that main modules exist
-    expected_modules = ['core', 'cli']
+    expected_modules = ['core', 'cli', 'community_packs']
     
     for module_name in expected_modules:
         try:
