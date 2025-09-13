@@ -65,7 +65,7 @@ jobs:
           uv run rulebook-ai packs list
           mkdir -p test_project
           uv run rulebook-ai packs add light-spec --project-dir test_project
-          uv run rulebook-ai project sync light-spec --project-dir test_project
+          uv run rulebook-ai project sync --pack light-spec --project-dir test_project
           yes | uv run rulebook-ai clean --project-dir test_project
 
       - name: Run tests with pytest
