@@ -9,7 +9,7 @@ def test_project_sync_with_pack_flag(tmp_path, run_cli):
     assert run_cli(["packs", "add", "heavy-spec"], project_dir).returncode == 0
 
     result = run_cli(
-        ["project", "sync", "--pack", "light-spec", "--cursor"], project_dir
+        ["project", "sync", "--pack", "light-spec", "--assistant", "cursor"], project_dir
     )
     assert result.returncode == 0, result.stderr
 
@@ -37,7 +37,7 @@ def test_project_sync_all_packs(tmp_path, run_cli):
 
     run_cli(["packs", "add", "light-spec", "heavy-spec"], project_dir)
 
-    result = run_cli(["project", "sync", "--cursor"], project_dir)
+    result = run_cli(["project", "sync", "--assistant", "cursor"], project_dir)
     assert result.returncode == 0, result.stderr
     manifest = json.loads(
         (project_dir / ".rulebook-ai" / "file_manifest.json").read_text()
@@ -56,7 +56,10 @@ def test_project_sync_with_profile(tmp_path, run_cli):
     run_cli(["profiles", "create", "frontend"], project_dir)
     run_cli(["profiles", "add", "light-spec", "--to", "frontend"], project_dir)
 
-    result = run_cli(["project", "sync", "--profile", "frontend", "--cursor"], project_dir)
+    result = run_cli(
+        ["project", "sync", "--profile", "frontend", "--assistant", "cursor"],
+        project_dir,
+    )
     assert result.returncode == 0, result.stderr
 
     manifest = json.loads(
@@ -74,8 +77,11 @@ def test_project_status_reports_last_sync(tmp_path, run_cli):
     project_dir.mkdir()
 
     run_cli(["packs", "add", "light-spec"], project_dir)
-    run_cli(["project", "sync", "--cursor"], project_dir)
-    run_cli(["project", "sync", "--windsurf", "--pack", "light-spec"], project_dir)
+    run_cli(["project", "sync", "--assistant", "cursor"], project_dir)
+    run_cli(
+        ["project", "sync", "--assistant", "windsurf", "--pack", "light-spec"],
+        project_dir,
+    )
 
     out = run_cli(["project", "status"], project_dir)
     assert "cursor" in out.stdout and "all" in out.stdout

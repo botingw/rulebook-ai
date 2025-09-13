@@ -26,5 +26,5 @@ def synced_project(tmp_path, run_cli):
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
     run_cli(["packs", "add", "light-spec"], project_dir)
-    run_cli(["project", "sync", "--cursor"], project_dir)
+    run_cli(["project", "sync", "--assistant", "cursor"], project_dir)
     return project_dir

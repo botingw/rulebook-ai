@@ -16,7 +16,10 @@ def test_profile_creation_and_sync(tmp_path, run_cli):
     list_out = run_cli(["profiles", "list"], project_dir)
     assert "frontend" in list_out.stdout
 
-    result = run_cli(["project", "sync", "--profile", "frontend", "--cursor"], project_dir)
+    result = run_cli(
+        ["project", "sync", "--profile", "frontend", "--assistant", "cursor"],
+        project_dir,
+    )
     assert result.returncode == 0
 
     status = json.loads(
