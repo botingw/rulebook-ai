@@ -1,3 +1,11 @@
 {
-  "packs": []
+  "packs": [
+    {
+      "name": "pm-workflow-copilot",
+      "username": "botingw",
+      "repo": "pm-workflow-copilot-ide",
+      "path": "pm-workflow-copilot-pack",
+      "description": "An AI assistant pack that guides you through a lightweight, opinionated product management workflow from idea to MVP documentation, directly within your IDE."
+    }
+  ]
 }

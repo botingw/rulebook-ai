@@ -239,24 +239,42 @@ class RuleManager:
         index = community_packs.load_index_cache().get("packs", [])
 
         print("Available packs:")
-        for entry in sorted(
-            [
-                {**b, "source": "built-in"} for b in builtins
-            ]
-            + [
-                {"name": p.get("name"), "description": p.get("description"), "source": "community"}
-                for p in index
-            ],
-            key=lambda e: e["name"],
-        ):
+
+        all_packs_to_sort = [{**b, "source": "built-in"} for b in builtins] + [
+            {
+                "name": p.get("name"),
+                "summary": p.get("description"),
+                "source": "community",
+                "username": p.get("username"),
+                "repo": p.get("repo"),
+                "path": p.get("path", ""),
+            }
+            for p in index
+        ]
+
+        has_community_packs = any(p["source"] == "community" for p in all_packs_to_sort)
+
+        for entry in sorted(all_packs_to_sort, key=lambda e: e.get("name") or ""):
+            name = entry.get("name")
+            summary = entry.get("summary")
+            readme_url = ""
+
             if entry["source"] == "built-in":
-                print(
-                    f"  - {entry['name']} (built-in, v{entry['version']}) - {entry['summary']}"
-                )
+                version = entry.get("version")
+                print(f"  - {name} (built-in, v{version}) - {summary}")
+                readme_url = f"https://github.com/botingw/rulebook-ai/blob/main/src/rulebook_ai/packs/{name}/README.md"
             else:
-                print(
-                    f"  - {entry['name']} (community) - {entry['description']}"
-                )
+                print(f"  - {name} (community) - {summary}")
+                path_part = entry.get("path", "").strip("/")
+                if path_part:
+                    path_part = f"/{path_part}"
+                readme_url = f"https://github.com/{entry.get('username')}/{entry.get('repo')}/blob/main{path_part}/README.md"
+
+            if readme_url:
+                print(f"    └─ Learn more: {readme_url}")
+
+        if not has_community_packs:
+            print("\nTo see community packs, run 'rulebook-ai packs update'.")
 
         print(f"\nFor ratings and reviews of these packs, visit {RATINGS_REVIEWS_URL}")
 
@@ -389,8 +407,28 @@ class RuleManager:
 
         print("Pack library:")
         for idx, pack in enumerate(selection.packs, 1):
+            pack_name = pack["name"]
             version = pack.get("version", "unknown")
-            print(f"  {idx}. {pack['name']} (v{version})")
+            print(f"  {idx}. {pack_name} (v{version})")
+
+            readme_path = Path(TARGET_INTERNAL_STATE_DIR) / "packs" / pack_name / "README.md"
+            print(f"    └─ README: {readme_path}")
+
+            if "slug" in pack:
+                slug = pack["slug"]
+                try:
+                    # Simple slug parsing
+                    parts = slug.split("/")
+                    username, repo = parts[0], parts[1]
+                    subpath = "/".join(parts[2:])
+                    path_part = subpath.strip("/")
+                    if path_part:
+                        path_part = f"/{path_part}"
+
+                    readme_url = f"https://github.com/{username}/{repo}/blob/main{path_part}/README.md"
+                    print(f"    └─ Source: {readme_url}")
+                except Exception:
+                    pass  # If slug is malformed, just skip the URL
 
         if selection.profiles:
             print("\nProfiles:")
@@ -544,17 +582,30 @@ class RuleManager:
             print("No sync status found.")
             return 0
         print("Project Sync Status:")
-        for assistant, info in status.items():
+        for assistant, info in sorted(status.items()):
             ts = info.get("timestamp", "unknown")
             mode = info.get("mode", "all")
-            line = f"  - {assistant}: {ts} ({mode})"
+
+            line = f"  - {assistant}: Last synced at {ts} from "
             if mode == "profile":
-                line += f" profile={info.get('profile')}"
+                line += f"profile '{info.get('profile')}'"
             elif mode == "pack":
-                line += f" packs={len(info.get('packs', []))}"
-            else:
-                line += f" packs={len(info.get('packs', []))}"
+                line += "ad-hoc packs"
+            else:  # all
+                line += "all configured packs"
+
+            pack_count = info.get("pack_count", 0)
+            line += f" ({pack_count} packs total)."
             print(line)
+
+            packs_synced = info.get("packs", [])
+            if packs_synced:
+                print("    Packs included in last sync:")
+                for pack_name in sorted(packs_synced):
+                    readme_path = (
+                        Path(TARGET_INTERNAL_STATE_DIR) / "packs" / pack_name / "README.md"
+                    )
+                    print(f"      - {pack_name} (docs: {readme_path})")
         return 0
 
     def project_clean_rules(self, project_dir: Optional[str] = None) -> int:

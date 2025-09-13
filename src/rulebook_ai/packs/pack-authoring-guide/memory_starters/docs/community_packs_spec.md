@@ -67,7 +67,7 @@ Before a pack can be added to the public index, it must meet several quality sta
 The process for adding a new pack to the public index is as follows:
 
 1.  **Developer Creates Pack**: A developer creates a high-quality pack in their own public GitHub repository, ensuring it follows the [pack_structure_spec.md](../manage_rules/pack_structure_spec.md).
-2.  **Submit Pull Request**: The developer submits a Pull Request to the `Index Repository`, adding their pack's metadata to the `packs.json` file.
+2.  **Submit Pull Request**: The developer submits a Pull Request to the Index Repository, located at `https://github.com/botingw/community-index`, adding their pack's metadata to the `packs.json` file.
     *   Including a specific `commit` or `tag` is **highly recommended** for security and stability, as it ensures users install a specific, reviewed version of the pack.
     *   If omitted, the pack will be installed from the default branch, which is less secure.
 3.  **Automated Validation (CI)**: A `GitHub Action` automatically runs on the Pull Request. This CI job performs a sanity check by cloning the pack's repository and validating its structure against [pack_structure_spec.md](../manage_rules/pack_structure_spec.md). This validation **must** include a check to ensure the `name` in the pack's `manifest.yaml` matches the `name` being submitted to `packs.json`. The CI check must fail if they do not match.

@@ -29,7 +29,7 @@ This interactive workflow is much smoother and less error-prone than reading the
 ---
 <br>
 
-# Rulebook-AI Pack Developer Guide
+# Rulebook-AI Pack Developer Guide (The Specification)
 
 A Rulebook-AI Pack is a self-contained directory that bundles rules, starter files, and metadata. The purpose of this guide is to provide a specification so clear that a developer or an AI assistant can read it and correctly structure a rule pack that is universally compatible with `rulebook-ai`.
 
@@ -59,6 +59,7 @@ my-awesome-pack/
 ```
 
 The root of a pack may contain **only** the items shown above: `manifest.yaml`, `README.md`, `rules/`, and the optional `memory_starters/` and `tool_starters/`. **No other files or directories are permitted at the root.** Any extra files or directories (such as for tests, examples, or documentation) are a direct violation of the pack structure and **will cause validation to fail**. Such content must be placed inside one of the standard directories, for example `memory_starters/docs/`.
+
 
 ### `manifest.yaml` (Required)
 
@@ -128,7 +129,7 @@ The `name` field becomes the installation directory inside `.rulebook-ai/packs/<
     *   When converting an existing ruleset, decide which assistants you intend to support. If you only target mode-based assistants, this is less of a concern. If you want universal compatibility, you must review all rules to ensure they don't cause conflicts when flattened into a single context.
 
     **Best Practices for Pack Authors:**
-    *   **Use Numeric Prefixes:** Per the spec, directories and files under `rules/` **must** start with a zero‑padded `NN-` prefix to guarantee deterministic ordering. Leaving gaps (e.g., `10-`, `20-`) makes later inserts easier.
+    *   **Use Numeric Prefixes:** Per the spec, directories and files under `rules/` **must** start with a zero-padded `NN-` prefix to guarantee deterministic ordering. Leaving gaps (e.g., `10-`, `20-`) makes later inserts easier.
     *   **Name Directories for Mapping:** The name of a subdirectory after its prefix (e.g., `rules`, `rules-code`) directly determines the target folder for mode-based assistants. Ensure these match the target assistant's requirements.
 
 *   **`memory_starters/` & `tool_starters/` (Optional)**
