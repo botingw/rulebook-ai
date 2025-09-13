@@ -83,14 +83,14 @@ def create_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument("--profile")
     sync_parser.add_argument("--pack", action="append", dest="packs")
     assist_group = sync_parser.add_argument_group("assistant selection")
-    for assistant in SUPPORTED_ASSISTANTS:
-        assist_group.add_argument(
-            f"--{assistant.name}",
-            action="append_const",
-            dest="assistants",
-            const=assistant.name,
-            help=f"Generate rules for {assistant.display_name}",
-        )
+    assist_group.add_argument(
+        "--assistant",
+        "-a",
+        dest="assistants",
+        nargs="+",
+        choices=[a.name for a in SUPPORTED_ASSISTANTS],
+        help="Generate rules for selected assistant(s)",
+    )
     assist_group.add_argument(
         "--all",
         action="store_const",

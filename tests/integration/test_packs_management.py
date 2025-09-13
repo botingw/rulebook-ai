@@ -40,7 +40,7 @@ def test_remove_pack_does_not_touch_context(tmp_path, run_cli):
     project_dir.mkdir()
 
     run_cli(["packs", "add", "light-spec"], project_dir)
-    run_cli(["project", "sync", "--cursor"], project_dir)
+    run_cli(["project", "sync", "--assistant", "cursor"], project_dir)
     assert (project_dir / "memory" / "docs" / "architecture_template.md").is_file()
     assert (project_dir / "tools" / "web_scraper.py").is_file()
 
