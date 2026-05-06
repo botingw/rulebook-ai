@@ -57,3 +57,31 @@ def test_add_pack_with_source_conflict_fails(tmp_path, run_cli):
     assert not (
         project_dir / ".rulebook-ai" / "packs" / "light-spec" / "pack.json"
     ).exists()
+
+
+def test_packs_add_uses_builtin_manifest_name(tmp_path, run_cli):
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+
+    result = run_cli(["packs", "add", "no-memory-interaction-rules"], project_dir)
+    assert result.returncode == 0, result.stderr
+
+    rulebook_dir = project_dir / ".rulebook-ai"
+    assert (rulebook_dir / "packs" / "no-memory-interaction-rules").is_dir()
+    assert not (rulebook_dir / "packs" / "no_memory_interation_rules").exists()
+
+    selection = json.loads((rulebook_dir / "selection.json").read_text())
+    assert selection["packs"][0]["name"] == "no-memory-interaction-rules"
+
+
+def test_packs_add_accepts_builtin_directory_alias(tmp_path, run_cli):
+    project_dir = tmp_path / "proj"
+    project_dir.mkdir()
+
+    result = run_cli(["packs", "add", "no_memory_interation_rules"], project_dir)
+    assert result.returncode == 0, result.stderr
+
+    rulebook_dir = project_dir / ".rulebook-ai"
+    selection = json.loads((rulebook_dir / "selection.json").read_text())
+    assert selection["packs"][0]["name"] == "no-memory-interaction-rules"
+    assert (rulebook_dir / "packs" / "no-memory-interaction-rules").is_dir()

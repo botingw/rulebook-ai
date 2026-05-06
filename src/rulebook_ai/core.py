@@ -6,12 +6,12 @@ import json
 import re
 import shutil
 import sys
+import webbrowser
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import webbrowser
 import yaml
 
 from .assistants import ASSISTANT_MAP, SUPPORTED_ASSISTANTS, AssistantSpec
@@ -218,19 +218,31 @@ class RuleManager:
         if not self.source_packs_dir.is_dir():
             return []
         packs = []
-        for pack_dir in sorted(
-            [p for p in self.source_packs_dir.iterdir() if p.is_dir() and not p.name.startswith(".")],
-            key=lambda p: p.name,
-        ):
+        pack_dirs = [
+            p
+            for p in self.source_packs_dir.iterdir()
+            if p.is_dir() and not p.name.startswith(".")
+        ]
+        for pack_dir in sorted(pack_dirs, key=lambda p: p.name):
             manifest_path = pack_dir / "manifest.yaml"
+            name = pack_dir.name
             version = "unknown"
             summary = ""
             if manifest_path.exists():
                 manifest = yaml.safe_load(manifest_path.read_text()) or {}
+                name = manifest.get("name") or name
                 version = manifest.get("version", "unknown")
                 summary = manifest.get("summary", "")
-            packs.append({"name": pack_dir.name, "version": version, "summary": summary})
+            packs.append(
+                {"name": name, "path": str(pack_dir), "version": version, "summary": summary}
+            )
         return packs
+
+    def _find_builtin_pack(self, name: str) -> Optional[Dict[str, str]]:
+        for pack in self._builtin_packs():
+            if name in {pack["name"], Path(pack["path"]).name}:
+                return pack
+        return None
 
     def list_packs(self) -> None:
         builtins = self._builtin_packs()
@@ -262,7 +274,11 @@ class RuleManager:
             if entry["source"] == "built-in":
                 version = entry.get("version")
                 print(f"  - {name} (built-in, v{version}) - {summary}")
-                readme_url = f"https://github.com/botingw/rulebook-ai/blob/main/src/rulebook_ai/packs/{name}/README.md"
+                pack_dir_name = Path(entry.get("path", name)).name
+                readme_url = (
+                    "https://github.com/botingw/rulebook-ai/blob/main/"
+                    f"src/rulebook_ai/packs/{pack_dir_name}/README.md"
+                )
             else:
                 print(f"  - {name} (community) - {summary}")
                 path_part = entry.get("path", "").strip("/")
@@ -329,9 +345,11 @@ class RuleManager:
             )
 
         # Handle built-in and index packs by name
-        name = name_or_path
-        source = self.source_packs_dir / name
-        if source.is_dir():  # It's a built-in pack
+        requested_name = name_or_path
+        builtin_pack = self._find_builtin_pack(requested_name)
+        if builtin_pack:  # It's a built-in pack
+            name = builtin_pack["name"]
+            source = Path(builtin_pack["path"])
             dest_dir = project_root / TARGET_INTERNAL_STATE_DIR / "packs" / name
             if dest_dir.exists():
                 if (dest_dir / "pack.json").exists():
@@ -362,14 +380,17 @@ class RuleManager:
             from . import community_packs
 
             result = community_packs.add_pack_from_index(
-                name,
+                requested_name,
                 project_root,
                 self.source_packs_dir,
                 self._load_selection,
                 self._save_selection,
             )
             if result != 0:
-                print(f"Pack '{name}' not found as a built-in pack or in the community index.")
+                print(
+                    f"Pack '{requested_name}' not found as a built-in pack or in "
+                    "the community index."
+                )
                 self.list_packs()
             return result
 
