@@ -71,8 +71,9 @@ ignore = ["ANN101", "ANN102", "ANN401"]
 [tool.ruff.isort]
 known-first-party = ["rulebook_ai"]
 
-[tool.pytest]
+[tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -80,7 +81,7 @@ markers = [
     "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
 ]
-addopts = "-v"
+addopts = ["-v"]
 
 [tool.mypy]
 python_version = "3.9"
