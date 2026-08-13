@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 from .assistants import SUPPORTED_ASSISTANTS
 from .core import RuleManager
+from .scripts.sync_pack_docs import sync_docs
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -116,6 +118,15 @@ def create_parser() -> argparse.ArgumentParser:
     clean_ctx.add_argument("--force", action="store_true")
 
     # ------------------------------------------------------------------
+    # Maintenance commands
+    # ------------------------------------------------------------------
+
+    sync_docs_parser = subparsers.add_parser(
+        "sync-docs", help="Sync canonical docs into the authoring guide pack"
+    )
+    sync_docs_parser.add_argument("--project-dir", "-p")
+
+    # ------------------------------------------------------------------
     # Utility commands
     # ------------------------------------------------------------------
 
@@ -127,6 +138,10 @@ def create_parser() -> argparse.ArgumentParser:
 
 def handle_command(args: argparse.Namespace) -> int:
     project_dir = getattr(args, "project_dir", None)
+
+    if args.command == "sync-docs":
+        return sync_docs(Path(project_dir) if project_dir else Path.cwd())
+
     rm = RuleManager(project_dir)
 
     if args.command == "packs":
@@ -217,4 +232,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
