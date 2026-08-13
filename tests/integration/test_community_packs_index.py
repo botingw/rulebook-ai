@@ -3,16 +3,6 @@ import subprocess
 from pathlib import Path
 
 
-CACHE_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "src"
-    / "rulebook_ai"
-    / "community"
-    / "index_cache"
-    / "packs.json"
-)
-
-
 def _create_repo(base: Path, slug: str) -> tuple[Path, str]:
     repo_dir = base / Path(slug)
     repo_dir.mkdir(parents=True)
@@ -42,12 +32,17 @@ def _create_repo(base: Path, slug: str) -> tuple[Path, str]:
     return repo_dir, commit
 
 
-def _write_cache(data: dict) -> None:
-    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_PATH.write_text(json.dumps(data, indent=2))
+def _write_cache(data: dict, cache_path: Path) -> None:
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(data, indent=2))
+
+
+def _cache_env(cache_path: Path, **env: str) -> dict[str, str]:
+    return {"RULEBOOK_AI_INDEX_CACHE_PATH": str(cache_path), **env}
 
 
 def test_packs_update_refreshes_cache(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     index_file = tmp_path / "packs.json"
     data = {
         "packs": [
@@ -60,33 +55,35 @@ def test_packs_update_refreshes_cache(tmp_path, run_cli):
         ]
     }
     index_file.write_text(json.dumps(data))
-    _write_cache({"packs": []})
+    _write_cache({"packs": []}, cache_path)
     result = run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": index_file.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=index_file.as_uri()),
     )
     assert result.returncode == 0, result.stderr
-    cached = json.loads(CACHE_PATH.read_text())
+    cached = json.loads(cache_path.read_text())
     assert cached == data
 
 
 def test_packs_update_invalid_json_retains_old_cache(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     bad_index = tmp_path / "bad.json"
     bad_index.write_text("{" )
     old = {"packs": [ {"name": "old", "username": "u", "repo": "r", "description": "d"} ]}
-    _write_cache(old)
+    _write_cache(old, cache_path)
     result = run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": bad_index.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=bad_index.as_uri()),
     )
     assert result.returncode != 0
-    cached = json.loads(CACHE_PATH.read_text())
+    cached = json.loads(cache_path.read_text())
     assert cached == old
 
 
 def test_add_pack_by_name_uses_cache(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     base = tmp_path / "repos"
     slug = "user/good-pack"
     _, commit = _create_repo(base, slug)
@@ -103,11 +100,11 @@ def test_add_pack_by_name_uses_cache(tmp_path, run_cli):
     }
     index_file = tmp_path / "packs.json"
     index_file.write_text(json.dumps(index))
-    _write_cache({"packs": []})
+    _write_cache({"packs": []}, cache_path)
     run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": index_file.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=index_file.as_uri()),
     )
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -115,7 +112,7 @@ def test_add_pack_by_name_uses_cache(tmp_path, run_cli):
         ["packs", "add", "good-pack"],
         project_dir,
         input_text="yes\n",
-        env={"RULEBOOK_AI_GIT_BASE": str(base)},
+        env=_cache_env(cache_path, RULEBOOK_AI_GIT_BASE=str(base)),
     )
     assert result.returncode == 0, result.stderr
     dest = project_dir / ".rulebook-ai" / "packs" / "good-pack"
@@ -126,27 +123,27 @@ def test_add_pack_by_name_uses_cache(tmp_path, run_cli):
 
 
 def test_add_unknown_pack_name_fails(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     index_file = tmp_path / "packs.json"
     index_file.write_text(json.dumps({"packs": []}))
-    _write_cache({"packs": []})
+    _write_cache({"packs": []}, cache_path)
     run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": index_file.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=index_file.as_uri()),
     )
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
-    result = run_cli([
-        "packs",
-        "add",
-        "unknown",
-    ], project_dir)
+    result = run_cli(
+        ["packs", "add", "unknown"], project_dir, env=_cache_env(cache_path)
+    )
     assert result.returncode != 0
     dest = project_dir / ".rulebook-ai" / "packs" / "unknown"
     assert not dest.exists()
 
 
 def test_add_pack_name_mismatch_fails(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     base = tmp_path / "repos"
     slug = "user/good-pack"
     _, commit = _create_repo(base, slug)
@@ -163,11 +160,11 @@ def test_add_pack_name_mismatch_fails(tmp_path, run_cli):
     }
     index_file = tmp_path / "packs.json"
     index_file.write_text(json.dumps(index))
-    _write_cache({"packs": []})
+    _write_cache({"packs": []}, cache_path)
     run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": index_file.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=index_file.as_uri()),
     )
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -175,7 +172,7 @@ def test_add_pack_name_mismatch_fails(tmp_path, run_cli):
         ["packs", "add", "wrong-name"],
         project_dir,
         input_text="yes\n",
-        env={"RULEBOOK_AI_GIT_BASE": str(base)},
+        env=_cache_env(cache_path, RULEBOOK_AI_GIT_BASE=str(base)),
     )
     assert result.returncode != 0
     dest = project_dir / ".rulebook-ai" / "packs" / "good-pack"
@@ -183,6 +180,7 @@ def test_add_pack_name_mismatch_fails(tmp_path, run_cli):
 
 
 def test_installed_pack_records_slug_metadata(tmp_path, run_cli):
+    cache_path = tmp_path / "cache.json"
     base = tmp_path / "repos"
     slug = "user/good-pack"
     _, commit = _create_repo(base, slug)
@@ -199,11 +197,11 @@ def test_installed_pack_records_slug_metadata(tmp_path, run_cli):
     }
     index_file = tmp_path / "packs.json"
     index_file.write_text(json.dumps(index))
-    _write_cache({"packs": []})
+    _write_cache({"packs": []}, cache_path)
     run_cli(
         ["packs", "update"],
         tmp_path,
-        env={"RULEBOOK_AI_INDEX_URL": index_file.as_uri()},
+        env=_cache_env(cache_path, RULEBOOK_AI_INDEX_URL=index_file.as_uri()),
     )
     project_dir = tmp_path / "proj"
     project_dir.mkdir()
@@ -211,7 +209,7 @@ def test_installed_pack_records_slug_metadata(tmp_path, run_cli):
         ["packs", "add", "good-pack"],
         project_dir,
         input_text="yes\n",
-        env={"RULEBOOK_AI_GIT_BASE": str(base)},
+        env=_cache_env(cache_path, RULEBOOK_AI_GIT_BASE=str(base)),
     )
     selection = json.loads(
         (project_dir / ".rulebook-ai" / "selection.json").read_text()

@@ -19,6 +19,12 @@ DEFAULT_INDEX_URL = (
 )
 
 
+def _index_cache_path() -> Path:
+    """Return the bundled cache path unless a test/development override is set."""
+    override = os.environ.get("RULEBOOK_AI_INDEX_CACHE_PATH")
+    return Path(override) if override else INDEX_CACHE_PATH
+
+
 def parse_slug(slug: str) -> tuple[str, str, str]:
     parts = slug.split("/")
     if len(parts) < 2:
@@ -109,9 +115,10 @@ def validate_pack_structure(
 
 
 def _load_index_cache() -> Dict[str, List[Dict[str, str]]]:
-    if INDEX_CACHE_PATH.exists():
+    cache_path = _index_cache_path()
+    if cache_path.exists():
         try:
-            return json.loads(INDEX_CACHE_PATH.read_text())
+            return json.loads(cache_path.read_text())
         except Exception:
             pass
     return {"packs": []}
@@ -123,8 +130,9 @@ def load_index_cache() -> Dict[str, List[Dict[str, str]]]:
 
 
 def _save_index_cache(data: Dict[str, List[Dict[str, str]]]) -> None:
-    INDEX_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INDEX_CACHE_PATH.write_text(json.dumps(data, indent=2))
+    cache_path = _index_cache_path()
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(data, indent=2))
 
 
 def _validate_index(data: Dict[str, List[Dict[str, str]]]) -> List[Dict[str, str]]:
