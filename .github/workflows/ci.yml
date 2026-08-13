@@ -18,9 +18,10 @@ jobs:
           python-version: '3.9'
 
       - name: Set up uv
-        run: |
-          curl -fsSL https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Create virtual environment
         run: uv venv
@@ -48,9 +49,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up uv
-        run: |
-          curl -fsSL https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Create virtual environment
         run: uv venv
@@ -85,9 +87,10 @@ jobs:
           python-version: '3.9'
 
       - name: Set up uv
-        run: |
-          curl -fsSL https://astral.sh/uv/install.sh | bash
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Create virtual environment
         run: uv venv
