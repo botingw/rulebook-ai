@@ -6,6 +6,6 @@ After the contributor assembles their pack:
 2. Confirm `manifest.yaml` includes `name`, `version`, and `summary` fields.
 3. Verify `rules/` contains at least one numbered subdirectory with at least one numbered rule file in each.
 4. Check for UTF-8 encoding and reject hidden files or missing zero-padded prefixes.
-5. Run `tools/validate_pack.py <path>` to perform local structure validation; alternatively instruct the user to execute `rulebook-ai packs add <path>`.
+5. Run `tools/validate_pack.py <path>` to perform local structure validation; alternatively instruct the user to execute `rulebook-ai packs add local:<path>`.
 6. If validation reports errors, return the messages and reference `pack_structure_spec.md` or `platform_rules_spec.md` for fixes.
 7. When validation installs the pack locally, remind the user to remove or reinstall it after making changes.
