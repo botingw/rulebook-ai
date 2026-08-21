@@ -1,5 +1,8 @@
 this file document contradiction of docs about mode-specific rules and the real result from UI operation.
-STATUS: this contradition not resolved in code yet.
+STATUS: clarified in docs. `.roomodes` / `.kilocodemodes` (captured below) are mode *definition* files written by the
+assistant UI; they are a different artifact from the mode *rule* directories `.roo/rules-{modeSlug}/` and
+`.kilocode/rules-{modeSlug}/` that `rulebook-ai` generates. See "Mode Definitions vs. Mode Rules" in
+`../features/manage_rules/platform_rules_spec.md`.
 
 .roomodes
 

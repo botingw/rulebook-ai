@@ -13,7 +13,8 @@ The generation logic is determined by a declarative specification for each assis
 This format is for assistants that read from a directory of individual rule files (e.g., Cursor, Cline).
 
 *   **Action:** The CLI copies the rule files from each active pack into a single target directory (e.g., `.cursor/rules/`).
-*   **Modes:** Some multi-file assistants support "modes," represented by `NN-rules-{mode}` subdirectories in the pack's `rules/` folder as defined in the [Pack Structure Spec](pack_structure_spec.md) (e.g., `02-rules-code`, `03-rules-debug`). During sync the numeric prefix is removed and the mode name becomes the subdirectory in the target directory (e.g., `.kilocode/code/`, `.kilocode/debug/`).
+*   **Modes:** Some multi-file assistants support "modes," represented by `NN-rules-{mode}` subdirectories in the pack's `rules/` folder as defined in the [Pack Structure Spec](pack_structure_spec.md) (e.g., `02-rules-code`, `03-rules-debug`). During sync only the numeric prefix is removed, so the remaining `rules-{mode}` name becomes the subdirectory in the target directory (e.g., `02-rules-code` -> `.kilocode/rules-code/`, `03-rules-debug` -> `.kilocode/rules-debug/`). This matches the `.roo/rules-{modeSlug}/` and `.kilocode/rules-{modeSlug}/` layout that RooCode and Kilo Code read.
+*   **Mode Definitions vs. Mode Rules:** The `.roomodes` and `.kilocodemodes` files are *mode definition* files (slug, role definition, groups). They are created and owned by the assistant's own UI, and `rulebook-ai` never generates or edits them. `rulebook-ai` only generates the *mode rule* directories described above, which the assistant loads for whichever mode is active. Seeing a `.roomodes` file therefore does not replace or conflict with `.roo/rules-{modeSlug}/`.
 *   **File Extensions:** The assistant's specification may enforce a specific file extension (e.g., `.mdc` for Cursor).
 
 ### 2. Single-File Assistants
