@@ -130,13 +130,18 @@ def test_generate_for_assistant_mode_based(rule_manager, tmp_path):
     """
     Verify that the generation logic for mode-based assistants (Roo, Kilo)
     correctly creates mode-specific subdirectories.
+
+    The source directories use the ``NN-rules-{mode}`` shape mandated by
+    pack_structure_spec.md, so the generated output must keep the ``rules-``
+    prefix (``.kilocode/rules-code/``), which is what Roo Code and Kilo Code
+    actually read.
     """
     source_dir = tmp_path / "project_rules"
     source_dir.mkdir()
     (source_dir / "01-rules").mkdir()
     (source_dir / "01-rules" / "general.md").write_text("General Rule")
-    (source_dir / "02-code-mode").mkdir()
-    (source_dir / "02-code-mode" / "code.md").write_text("Code Rule")
+    (source_dir / "02-rules-code").mkdir()
+    (source_dir / "02-rules-code" / "code.md").write_text("Code Rule")
 
     target_root = tmp_path / "target_project"
     target_root.mkdir()
@@ -152,5 +157,7 @@ def test_generate_for_assistant_mode_based(rule_manager, tmp_path):
     kilocode_root = target_root / ".kilocode"
     assert (kilocode_root / "rules" / "general.md").is_file()
     assert (kilocode_root / "rules" / "general.md").read_text() == "General Rule"
-    assert (kilocode_root / "code-mode" / "code.md").is_file()
-    assert (kilocode_root / "code-mode" / "code.md").read_text() == "Code Rule"
+    assert (kilocode_root / "rules-code" / "code.md").is_file()
+    assert (kilocode_root / "rules-code" / "code.md").read_text() == "Code Rule"
+    # The mode name must not be stripped down to a bare ``code`` directory.
+    assert not (kilocode_root / "code").exists()
