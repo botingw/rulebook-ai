@@ -13,7 +13,7 @@ flowchart TD
     Root --> CLINE[.clinerules/]
     Root --> Roo[.roo/]
     Root --> SourceCode[src/]
-    Root --> Test[test/]
+    Root --> Test[tests/]
     Root --> Utils[utils/]
     Root --> Config[config/]
     Root --> Data[data/]
