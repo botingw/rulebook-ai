@@ -11,3 +11,4 @@ def test_packs_status_lists_library_and_profiles(tmp_path, run_cli):
     assert result.returncode == 0, result.stderr
     assert "light-spec" in result.stdout
     assert "frontend" in result.stdout
+    assert ".rulebook-ai/packs/light-spec/README.md" in result.stdout
