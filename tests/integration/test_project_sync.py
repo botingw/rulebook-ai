@@ -86,3 +86,4 @@ def test_project_status_reports_last_sync(tmp_path, run_cli):
     out = run_cli(["project", "status"], project_dir)
     assert "cursor" in out.stdout and "all" in out.stdout
     assert "windsurf" in out.stdout and "pack" in out.stdout
+    assert ".rulebook-ai/packs/light-spec/README.md" in out.stdout
