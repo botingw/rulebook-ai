@@ -86,12 +86,16 @@ your-target-project/
 | Old Command | New Command(s) | Purpose |
 | :--- | :--- | :--- |
 | `list-rules` | `rulebook-ai packs list` | Lists all available packs from the source repository. |
-| `install` | `rulebook-ai packs add <name>` | Adds a pack to the target project and triggers an implicit `sync`. |
-| (n/a) | `rulebook-ai packs remove <name>` | Removes a pack and triggers an implicit `sync`. |
+| `install` | `rulebook-ai packs add <name>` | Adds a pack to the target project's `selection.json` and prints a reminder to run `project sync`. |
+| (n/a) | `rulebook-ai packs remove <name>` | Removes a pack from `selection.json` and every profile, and prints a reminder to run `project sync`. |
 | (n/a) | `rulebook-ai packs status` | Shows the active packs, their versions, and their order. |
-| `sync` | `rulebook-ai sync` | Regenerates all rules and starters from active packs. Supports `--strict` to fail on file conflicts *(optional, low priority)*, `--force` to overwrite on conflict *(optional, low priority)*, and `--rebuild` to purge `memory/` and `tools/` before copying *(optional, low priority)*. |
-| `clean-all` | `rulebook-ai clean` | Removes the `.rulebook-ai` dir, `memory/`, `tools/`, and generated rules (destructive). |
-| `clean-rules` | `rulebook-ai clean-rules` | Deletes `.rulebook-ai` and generated rules but preserves `memory/` and `tools`. |
+| (n/a) | `rulebook-ai packs update` | Refreshes the community pack index. |
+| (n/a) | `rulebook-ai profiles create\|delete\|add\|remove\|list` | Manages named pack profiles stored in `selection.json`. |
+| `sync` | `rulebook-ai project sync` | Regenerates rules and context from active packs for the assistants selected with `--assistant/-a` (repeatable) or `--all`. |
+| `clean-all` | `rulebook-ai project clean` | Removes the `.rulebook-ai` dir, `memory/`, `tools/`, and generated rules (destructive, asks for confirmation). |
+| `clean-rules` | `rulebook-ai project clean-rules` | Deletes `.rulebook-ai` and generated rules but preserves `memory/` and `tools` (no confirmation prompt). |
+| (n/a) | `rulebook-ai project clean-context` | Removes orphaned context files; takes `--action delete\|keep` and `--force`. |
+| (n/a) | `rulebook-ai project status` | Shows the last sync info. |
 
 ## 6. Phase 4: Core Logic Refactoring (`src/rulebook_ai/core.py`)
 
@@ -99,19 +103,16 @@ your-target-project/
 
 1.  **Remove `install()` method:** This is replaced by `add_pack()`.
 2.  **Create `add_pack(pack_name)`:**
-    *   Validates that the pack exists in the source `packs/` dir.
+    *   Validates that the pack exists in the source `packs/` dir or the community index.
     *   Copies the pack source into the target's `.rulebook-ai/packs/`.
     *   Appends the pack's `name` and `version` to `.rulebook-ai/selection.json`.
-    *   Calls `self.sync()` in implicit mode to update existing assistant rules and merge `memory/` and `tools`.
+    *   Prints a reminder to run `project sync`; it never regenerates rules itself.
 3.  **Create `remove_pack(pack_name)`:**
-    *   Removes the pack from `selection.json`.
     *   Deletes the pack's source from `.rulebook-ai/packs/`.
-    *   Uses the per-pack file map to purge `memory/` and `tools` files owned by the pack.
-    *   Calls `self.sync()` in implicit mode.
-4.  **Heavily Refactor `sync()`:**
-    *   Sync operates in two modes:
-        *   **Explicit** – user passes assistant flags (e.g., `--cursor`); only those assistants are regenerated.
-        *   **Implicit** – no flags; used by `add`/`remove` to rebuild rules only for assistants that already have rule directories.
+    *   Removes the pack from `selection.json` and from every profile that referenced it.
+    *   Prints a reminder to run `project sync`; the next sync uses the per-pack file map to purge `memory/` and `tools` files owned by the pack.
+4.  **Refactor `project_sync()`:**
+    *   Sync always targets an explicit assistant selection, passed as `--assistant/-a` (repeatable) or `--all` for every supported assistant. There is no implicit mode and no per-assistant flag such as `--cursor`.
     *   **Delete all existing generated platform rules** (using `assistants.py` spec).
     *   Read the ordered list of pack entries (name and version) from `.rulebook-ai/selection.json`.
     *   **Compose `memory/` and `tools/`:**
@@ -132,11 +133,12 @@ your-target-project/
 
 **Action:** Update the `argparse` configuration and handler functions to match the new command structure defined in Phase 3.
 
-*   Create sub-parsers for the `packs` command group (`list`, `add`, `remove`, `status`).
-*   The `packs add` and `packs remove` commands will take a `pack_name` argument.
+*   Create sub-parsers for the `packs` command group (`list`, `add`, `remove`, `update`, `status`).
+*   Create sub-parsers for the `profiles` command group (`create`, `delete`, `add`, `remove`, `list`).
+*   The `packs add` and `packs remove` commands will take one or more `pack_name` arguments.
 *   The main handler will route subcommands to the new methods in `RuleManager` (`add_pack`, `remove_pack`, etc.).
-*   Expose both `clean` and `clean-rules` top-level commands, each prompting for confirmation before deleting files.
+*   Expose `project` sub-parsers for `sync`, `status`, `clean`, `clean-rules`, and `clean-context`. Only `project clean` prompts for confirmation; `project clean-rules` does not.
 *   Add a `--strict` option to `sync` that aborts on file conflicts *(optional, low priority)*; without it, sync emits warnings when later packs are skipped.
 *   Add a `--force` option to `sync` that overwrites conflicting files *(optional, low priority)*.
-*   Add a `--rebuild` option to `sync` that purges `memory/` and `tools/` before copying from active packs *(optional, low priority)*.
-*   The `--cursor`, `--cline`, etc. flags are no longer needed for `add`/`remove`, but should be kept for the `sync` command to allow targeted syncs for specific assistants.
+*   Add a `--rebuild` option to `sync` that purges `memory/` and `tools` before copying from active packs *(optional, low priority)*.
+*   Target assistants on `project sync` with a single repeatable `--assistant/-a` flag (or `--all` for every supported assistant) instead of per-assistant flags like `--cursor` or `--cline`.

@@ -7,67 +7,79 @@ spec-level behavior rather than implementation details.
 
 ```mermaid
 flowchart TD
-    A[User runs `packs add <name>`] --> B{Pack exists in source repo?}
-    B -- No --> Z[Abort with error]
+    A[User runs `packs add <name>`] --> B{Pack exists in source repo or community index?}
+    B -- No --> Z[Report not found and list available packs]
     B -- Yes --> C[Copy pack to `.rulebook-ai/packs/`]
     C --> D[Record name & version in `selection.json`]
-    D --> E[Invoke implicit `sync` (see `sync` diagram)]
+    D --> E[Print reminder to run `project sync`]
     E --> F[Command completes]
 ```
 
-*`packs add` triggers an implicit `sync`; see the `sync` command diagram for how rules, memory, and tools are regenerated.*
+*`packs add` only edits the pack library. It does not touch `memory/`, `tools/`, or generated rules — the user must run `project sync` explicitly.*
 
 ## `rulebook-ai packs remove <name>`
 
 ```mermaid
 flowchart TD
-    A[User runs `packs remove <name>`] --> B{Pack active?}
-    B -- No --> Z[Abort with error]
-    B -- Yes --> C[Remove entry from `selection.json`]
-    C --> D[Delete pack from `.rulebook-ai/packs/`]
-    D --> E[Purge pack files from `memory/` & `tools/`]
-    E --> F[Invoke implicit `sync` (see `sync` diagram)]
-    F --> G[Command completes]
+    A[User runs `packs remove <name>`] --> B{Pack installed?}
+    B -- No --> Z[Report not installed]
+    B -- Yes --> C[Delete pack dir from `.rulebook-ai/packs/`]
+    C --> D[Remove entry from `selection.json` and every profile]
+    D --> E[Print reminder to run `project sync`]
+    E --> F[Command completes]
 ```
 
-*`packs remove` triggers an implicit `sync`; see the `sync` command diagram for how remaining packs are rebuilt.*
+*`packs remove` only edits the pack library. Files previously copied into `memory/` and `tools/` are purged by the next `project sync`, using the pack's entries in `file_manifest.json`.*
 
-## `rulebook-ai sync`
+## `rulebook-ai project sync`
 
 ```mermaid
 flowchart TD
-    A[User runs `sync` (optional flags)] --> B{Assistant flags provided?}
-    B -- Yes --> C[Explicit mode: target listed assistants]
-    B -- No --> D[Implicit mode: detect existing rule dirs]
-    C --> E[Delete generated rules for targets]
-    D --> E
-    E --> F[Merge active packs into `memory/` & `tools/`]
-    F --> G[Warn on conflicts or abort in `--strict` mode]
-    G --> H[Generate combined rules for targeted assistants]
+    A[User runs `project sync`] --> B{`--assistant/-a` or `--all` provided?}
+    B -- Yes --> C[Target the listed / all supported assistants]
+    B -- No --> Z[Error: no target assistants selected]
+    C --> D[Read active packs and profiles from `selection.json`]
+    D --> E[Merge packs into `memory/` & `tools/`]
+    E --> F[Update `file_manifest.json` with per-pack file ownership]
+    F --> G[Write platform rules for the targeted assistants]
+    G --> H[Record results in `sync_status.json`]
     H --> I[Command completes]
 ```
 
-## `rulebook-ai clean`
+## `rulebook-ai project clean`
 
 ```mermaid
 flowchart TD
-    A[User runs `clean`] --> B{User confirms?}
-    B -- No --> Z[Abort]
-    B -- Yes --> C[Delete `.rulebook-ai/`]
-    C --> D[Delete `memory/` & `tools/`]
-    D --> E[Delete generated assistant rule dirs]
+    A[User runs `project clean`] --> B{User confirms?}
+    B -- No --> Z[Print cancelled and abort]
+    B -- Yes --> C[Delete generated assistant rule dirs]
+    C --> D[Delete `.rulebook-ai/`]
+    D --> E[Delete `memory/` & `tools/`]
     E --> F[Command completes]
 ```
 
-## `rulebook-ai clean-rules`
+## `rulebook-ai project clean-rules`
 
 ```mermaid
 flowchart TD
-    A[User runs `clean-rules`] --> B{User confirms?}
-    B -- No --> Z[Abort]
-    B -- Yes --> C[Delete `.rulebook-ai/`]
-    C --> D[Delete generated assistant rule dirs]
-    D --> E[Preserve `memory/` & `tools/`]
-    E --> F[Command completes]
+    A[User runs `project clean-rules`] --> B[Delete generated assistant rule dirs]
+    B --> C[Delete `.rulebook-ai/`]
+    C --> D[Preserve `memory/` & `tools/`]
+    D --> E[Command completes]
 ```
 
+*Unlike `project clean`, `project clean-rules` runs without a confirmation prompt; it never touches user-owned `memory/` and `tools/`.*
+
+## `rulebook-ai project clean-context`
+
+```mermaid
+flowchart TD
+    A[User runs `project clean-context`] --> B{`--action` provided?}
+    B -- No --> C[Report orphaned context files]
+    B -- `delete` --> D[Delete orphaned context files]
+    B -- `keep` --> E[Leave orphaned context files in place]
+    D --> F[Command completes]
+    E --> F
+```
+
+*`--force` skips the prompt when removing orphaned context files.*
