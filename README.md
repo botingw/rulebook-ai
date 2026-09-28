@@ -72,6 +72,10 @@ Or generate rules for all supported assistants with:
 rulebook-ai project sync --all
 ```
 
+### Compatible Spec Tools
+
+- **[MySpec](https://myspec.dev)** — Interactive discovery interview and 4-file spec generator (`constitution.md`, `requirements.md`, `solution.md`, `tasks.md`). Works alongside Rulebook-AI rule packs with native MCP server integration (`@myspec/mcp-server`) for Cursor, Claude Code, and Cline.
+
 ## How It Works: The Pack System
 
 The core of `rulebook-ai` is a simple, powerful workflow:
